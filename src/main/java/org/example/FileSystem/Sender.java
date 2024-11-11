@@ -57,7 +57,7 @@ public class Sender {
             messageContent.put("localFileName", localFileName);
             messageContent.put("hyDFSFileName", hyDFSFileName);
             String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
-            Message msg = new Message("sending_file",
+            Message msg = new Message("get_file",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     senderPort,
                     messageContent);
@@ -79,7 +79,7 @@ public class Sender {
             messageContent.put("msgId", FDProperties.generateRandomMessageId());
             messageContent.put("hyDFSFileName", hyDFSFileName);
             String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
-            Message msg = new Message("sending_file",
+            Message msg = new Message("get_file_hash",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     senderPort,
                     messageContent);
@@ -96,6 +96,31 @@ public class Sender {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public void mergeFile(String hyDFSFileName) {
+        try {
+            int fileNameHash = HashFunction.hash(hyDFSFileName);
+            Member member = MembershipList.getMemberById(fileNameHash);
+            String IpAddress = member.getIpAddress();
+            String port = member.getPort();
+            Map<String, Object> messageContent = new HashMap<>();
+            messageContent.put("messageName", "merge");
+            messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
+            messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
+            messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
+            messageContent.put("msgId", FDProperties.generateRandomMessageId());
+            messageContent.put("hyDFSFileName", hyDFSFileName);
+            String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
+            Message msg = new Message("merge",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    senderPort,
+                    messageContent);
+            String response = sendMessage(IpAddress, Integer.parseInt(port), msg);
+            System.out.println(response);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     //TODO send request to receive a file
@@ -219,7 +244,7 @@ public class Sender {
                 messageContent.put("localFileName", localFileNames.get(i));
                 messageContent.put("hyDFSFileName", hyDFSFileName);
                 String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
-                Message msg = new Message("sending_file",
+                Message msg = new Message("multi_append",
                         String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                         senderPort,
                         messageContent);

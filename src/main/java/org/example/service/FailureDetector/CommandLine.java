@@ -97,7 +97,8 @@ public class CommandLine implements Runnable {
                             break;
                         case "merge":
                             String hyDFSFile = list[1];
-                            sender.updateReplicas(Arrays.asList(hyDFSFile));
+//                            sender.updateReplicas(Arrays.asList(hyDFSFile));
+                            sender.mergeFile(hyDFSFile);
                             break;
                         case "ls":
 //                          TODO  below code is wrong ask each machine if they have this file
@@ -114,12 +115,18 @@ public class CommandLine implements Runnable {
 //                            list the set of file names (along with their IDs) that are replicated (stored) on HyDFS at this
 //                            (local) process/VM. This should NOT include files stored on the local file system.
 //                            Also, print the process/VM’s ID on the ring.
-                            System.out.println("Stored HyDFS files on the " +
+                            System.out.println("Owned HyDFS files on the " +
                                     String.valueOf(FDProperties.getFDProperties().get("machineName")) +
                                     " with ring id " + MembershipList.selfId);
                             for(String fileName : FileData.getOwnedFiles()) {
                                 System.out.println(fileName);
                             }
+                            System.out.println("Replicated HyDFS files on the " +
+                                    String.valueOf(FDProperties.getFDProperties().get("machineName")) +
+                                    " with ring id " + MembershipList.selfId);
+                            FileData.getReplicaMap().forEach((k,v)->{
+                                System.out.println(k + " " + v);
+                            });
                             break;
                         case "getFromReplica":
                             sender.getFileFromReplica(list[1], list[2], list[3]);

@@ -16,6 +16,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLOutput;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -111,6 +112,15 @@ public class Receiver extends Thread {
                             String localFileName = String.valueOf(message.getMessageContent().get("localFileName"));
                             String hyDFSFileName = String.valueOf(message.getMessageContent().get("hyDFSFileName"));
                             sender.append_File(localFileName, hyDFSFileName);
+                            break;
+                        case "merge":
+                            try {
+                                String FileName = String.valueOf(message.getMessageContent().get("hyDFSFileName"));
+                                Sender s = new Sender();
+                                s.updateReplicas(Arrays.asList(FileName));
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
                             break;
                         case "get_file_details":
                             String[] requestFiles = String.valueOf(message.getMessageContent().get("hyDFSFileNames")).split(",");

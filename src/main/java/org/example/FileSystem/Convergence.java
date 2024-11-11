@@ -28,7 +28,7 @@ public class Convergence extends Thread {
                     }
                 }
                 List<Integer> sortedKeys = new CopyOnWriteArrayList<>(MembershipList.memberslist.keySet());
-                if(MembershipList.failedNodes.size()>0){
+                if(!MembershipList.failedNodes.isEmpty()){
                     System.out.println("Some Nodes Failed");
                 }
                 for (int key : MembershipList.failedNodes) {
