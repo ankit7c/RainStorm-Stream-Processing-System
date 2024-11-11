@@ -33,10 +33,10 @@ public class Sender {
             //System.out.println(port+10);
             String msg = objectMapper.writeValueAsString(message.getMessageContent());
             out.println(msg);
-            System.out.println("Sent to server: " + msg);
+//            System.out.println("Sent to server: " + msg);
 
             String response = in.readLine();
-            System.out.println("Received from server: " + response);
+//            System.out.println("Received from server: " + response);
             return response;
         } catch (IOException e) {
             e.printStackTrace();

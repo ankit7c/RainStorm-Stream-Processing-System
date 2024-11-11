@@ -53,7 +53,7 @@ public class FileReceiver extends Thread {
                     metadataBuffer.flip();
                     String metadataJsonString = new String(metadataBuffer.array(), 0, metadataBuffer.limit());
 
-                    System.out.println("Printing json" + metadataJsonString);
+//                    System.out.println("Printing json" + metadataJsonString);
                     JSONObject metadataJson = new JSONObject(metadataJsonString);
                     String hyDFSFileName = metadataJson.getString("FILENAME");
                     String localFileName = metadataJson.getString("LOCALFILENAME");
@@ -62,7 +62,7 @@ public class FileReceiver extends Thread {
                     String fileOp = metadataJson.getString("OP");
                     int senderId = metadataJson.getInt("SENDERID");
 
-                    System.out.println(hyDFSFileName + fileSize + fileOp + fileType);
+//                    System.out.println(hyDFSFileName + fileSize + fileOp + fileType);
                     if (hyDFSFileName == null || fileSize == 0 || fileOp == null || fileType == null) {
                         System.out.println("Invalid metadata received");
                         continue; // Skip to the next connection if metadata is invalid
@@ -155,14 +155,14 @@ public class FileReceiver extends Thread {
                     if (fileChannel != null) fileChannel.close();
                     if (isTempFilePresent && tempFileChannel != null) tempFileChannel.close();
                 } catch (IOException e) {
-                    System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
+//                    System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
                     e.printStackTrace();
                     FileTransferManager.logEvent("File reception failed for " + hyDFSFileName + ": " + e.getMessage());
                 }
 
 
                 hyDFSFileName = null;
-                System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
+//                System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
             }
         } catch (IOException e) {
             e.printStackTrace();
