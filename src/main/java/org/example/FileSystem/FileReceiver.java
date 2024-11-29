@@ -155,14 +155,10 @@ public class FileReceiver extends Thread {
                     if (fileChannel != null) fileChannel.close();
                     if (isTempFilePresent && tempFileChannel != null) tempFileChannel.close();
                 } catch (IOException e) {
-//                    System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
                     e.printStackTrace();
                     FileTransferManager.logEvent("File reception failed for " + hyDFSFileName + ": " + e.getMessage());
                 }
-
-
                 hyDFSFileName = null;
-//                System.out.println(" Operation Completed . Current Time is :- "+Member.getLocalDateTime());
             }
         } catch (IOException e) {
             e.printStackTrace();

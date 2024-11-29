@@ -64,7 +64,6 @@ public class Convergence extends Thread {
                 }
                 MembershipList.failedNodes.clear();
                 checkMergeCounter++;
-//System.out.println("re-replication process completed");
                 Thread.sleep(10000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

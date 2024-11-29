@@ -24,7 +24,6 @@ public class Receiver extends Thread {
 
     public void receiveMessage(){
         int serverPort = (int) FDProperties.getFDProperties().get("machinePort") + 10;
-        FileTransferManager fileTransferManager = new FileTransferManager();
         try (var serverSocket = new ServerSocket(serverPort)) { // Server listening on port 5000
             System.out.println("Server is listening on port " + serverPort);
 
@@ -126,17 +125,25 @@ public class Receiver extends Thread {
                             String[] requestFiles = String.valueOf(message.getMessageContent().get("hyDFSFileNames")).split(",");
                             HashMap<String, List<String>> map = new HashMap<>();
                             for(String requestFile : requestFiles){
-//                                System.out.println(FileTransferManager.getFileOperations(requestFile));
                                 if(FileData.checkFilePresent(requestFile)) {
                                     map.put(requestFile, FileTransferManager.getFileOperations(requestFile));
                                 }
                             }
                             ObjectMapper objectMapper = new ObjectMapper();
                             out.println(objectMapper.writeValueAsString(map));
+                            break;
+                        // TODO add code below to Receive control commands
+                        case "control":
+                            // TODO based on the control message: check what leader has given us a role
+                            // TODO based on the role take appropriate action
+                        case "node_failure":
+                            // TODO if a node fails and you are a source then repeat the tuples
+                            break;
+                        case "":
+                            break;
                         case "/exit":
                     }
                     // Send response back to client
-
                     System.out.println("Sent to client: " + response);
                 }
             }

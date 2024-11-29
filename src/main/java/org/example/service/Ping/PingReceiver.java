@@ -154,11 +154,6 @@ public class PingReceiver extends Thread{
                             String t = "" + message.getMessageContent().get("versionNo");
                             String k = "" + message.getMessageContent().get("senderPort");
                             logger.info(s);
-//                            if(message.getMessageContent().get("incarnationNo") instanceof Integer){
-//                                logger.info("yes");
-//                            }
-//                            int incarnationNo = (int) message.getMessageContent().get("incarnationNo");
-//                            logger.info("No");
                             MembershipList.addMember(
                                     new Member(HashFunction.hash((String) message.getMessageContent().get("senderName")),
                                             (String) message.getMessageContent().get("senderName"),
@@ -184,8 +179,6 @@ public class PingReceiver extends Thread{
                         messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
                         messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
                         messageContent.put("msgId", FDProperties.generateRandomMessageId());
-//                        System.out.println("Sending Ping Ack");
-                        buf = new byte[1024];
                         buf = objectMapper.writeValueAsString(messageContent).getBytes();
                         DatagramPacket pingAckPacket
                                 = new DatagramPacket(buf, buf.length, address, port);
