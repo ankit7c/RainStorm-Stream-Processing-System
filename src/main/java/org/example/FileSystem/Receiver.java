@@ -1,10 +1,8 @@
 package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.entities.FDProperties;
-import org.example.entities.FileData;
-import org.example.entities.FileTransferManager;
-import org.example.entities.Message;
+import org.example.Stream.Worker;
+import org.example.entities.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,6 +14,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLOutput;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -91,14 +90,11 @@ public class Receiver extends Thread {
                         case "get_file_hash":
                             try {
                                 String hyDFSFileName = String.valueOf(message.getMessageContent().get("hyDFSFileName"));
-                                //System.out.println("At line 92 in receiv");
                                 if(FileData.checkFilePresent(hyDFSFileName)){
                                     FileChannel fileChannel = FileChannel.open(Paths.get("HyDFS/" + hyDFSFileName), StandardOpenOption.READ);
                                     response = FileData.calculateHash(fileChannel);
-                                    //System.out.println("At line 95 in receiv");
                                 }else {
                                     response = "Unsuccessful file not found";
-                                    //System.out.println("At line 98 in receiv");
                                 }
                                 //System.out.println("Printing from 101"+response);
                                 out.println(response);
@@ -132,14 +128,25 @@ public class Receiver extends Thread {
                             ObjectMapper objectMapper = new ObjectMapper();
                             out.println(objectMapper.writeValueAsString(map));
                             break;
-                        // TODO add code below to Receive control commands
+                            // TODO add code below to Receive control commands
                         case "control":
                             // TODO based on the control message: check what leader has given us a role
                             // TODO based on the role take appropriate action
                         case "node_failure":
                             // TODO if a node fails and you are a source then repeat the tuples
                             break;
-                        case "":
+                        case "set_source":
+                            //TODO action a source needs to take
+                            int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("Total Op1s")));
+                            ArrayList<Member> members = new ArrayList<>();
+                            for (int i = 0; i < tot_ops; i++) {
+                                members.add(MembershipList.memberslist.get());
+                            }
+                            Worker worker = new Worker();
+                            break;
+                        case "set_op1":
+                            break;
+                        case "set_op2":
                             break;
                         case "/exit":
                     }

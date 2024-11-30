@@ -39,7 +39,7 @@ public class MembershipList {
     }
 
     public static void removeMember(String name) {
-       // memberslist.remove(members.get(name).getId());
+        // TODO before removing member call the function to decide the new tasks
         members.remove(name);
         memberNames.remove(name);
     }

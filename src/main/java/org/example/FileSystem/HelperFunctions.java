@@ -1,8 +1,18 @@
 package org.example.FileSystem;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 public class HelperFunctions {
+
+    public static long countLines(String filePath) throws IOException {
+        try (BufferedReader reader = Files.newBufferedReader(Path.of(filePath))) {
+            return reader.lines().count();
+        }
+    }
 
     public static void listFiller(int concurrentClients, List<String> vmNames,int count) {
         if(concurrentClients ==1){

@@ -29,15 +29,9 @@ public class Sender {
         try (Socket socket = new Socket(IpAddress, port+10);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-            //System.out.println(port+10);
             String msg = objectMapper.writeValueAsString(message.getMessageContent());
             out.println(msg);
-//            System.out.println("Sent to server: " + msg);
-
-            String response = in.readLine();
-//            System.out.println("Received from server: " + response);
-            return response;
+            return in.readLine();
         } catch (IOException e) {
             e.printStackTrace();
             return "Unsuccessful";
@@ -61,8 +55,7 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     senderPort,
                     messageContent);
-            String response = sendMessage(IpAddress, port, msg);
-            return response;
+            return sendMessage(IpAddress, port, msg);
         }catch (Exception e){
             e.printStackTrace();
             return "Unsuccessful";
@@ -123,10 +116,9 @@ public class Sender {
         }
     }
 
-    //TODO send request to receive a file
-    //TODO send a request to upload a file
+    //send request to receive a file or send a request to upload a file
     public String uploadFile(String localFileName, String hyDFSFileName) throws IOException {
-        //TODO check if file present in local
+        //check if file present in local
         try {
             int fileNameHash = HashFunction.hash(hyDFSFileName);
             Member member = MembershipList.getMemberById(fileNameHash);
@@ -147,25 +139,17 @@ public class Sender {
 
     public String get_File(String localFileName, String hyDFSFileName) {
         try {
-            //TODO need to handle failures
             //If any node is not there then ask for next node
             //If file not present then return File not found, for that need to check in all replicas
             //This request should go by default to Co-ordinator and then it would return the server name with the filepath and then request the file.
-            // TODO check if file is present in its own list , also implement file caching in future
-//            if(FileData.checkFilePresent(hyDFSFileName)){
-//                System.out.println(hyDFSFileName + " exists at the local machine under HyDFS/");
-//                return "success";
-//            }
             boolean isAbsent = true;
             int fileNameHash = HashFunction.hash(hyDFSFileName);
             Member member = MembershipList.getMemberById(fileNameHash);
             String IpAddress = member.getIpAddress();
             String port = member.getPort();
             if(LRUFileCache.FILE_CACHE.isFileInCache(hyDFSFileName)){
-                //System.out.println(" At line no. 140 in sender");
                 if(LRUFileCache.FILE_CACHE.isFileOlder(hyDFSFileName)){
                     //check if file has changed with the owner
-                    //System.out.println(" At line no. 143 in sender");
                     if(getFileRequestHash(IpAddress, Integer.parseInt(port), localFileName, hyDFSFileName)){
                         System.out.println("The file is already cached and saved at : local/" + hyDFSFileName);
                         isAbsent = false;
@@ -178,19 +162,17 @@ public class Sender {
 
             if(isAbsent){
                 int fileReceiverPort = (int) FDProperties.getFDProperties().get("machinePort");
-                //System.out.println(" At line no. 159 in sender");
                 String result = getFileRequest(IpAddress, Integer.parseInt(port), localFileName, hyDFSFileName, fileReceiverPort);
                 System.out.println("File receive was " + result);
             }
             return "Success";
         }catch (Exception e){
             e.printStackTrace();
-            //System.out.println(" At line no. 166 in sender");
             return "Unable to send receive file request";
         }
     }
 
-    //TODO send a request to append a file
+    //send a request to append a file
     public void append_File(String localFileName, String hyDFSFileName){
         try {
             int fileNameHash = HashFunction.hash(hyDFSFileName);
@@ -205,11 +187,10 @@ public class Sender {
                     ""));
         } catch (RuntimeException e) {
             System.out.println("File Append was unsuccessful");
-//            throw new RuntimeException(e);
         }
     }
 
-    //TODO get a replica from a node
+    //get a replica from a node
     public String getFileFromReplica(String VMName, String localFileName, String hyDFSFileName) {
         try{
             int hash = HashFunction.hash(VMName);
@@ -227,9 +208,8 @@ public class Sender {
             return "Unable to receive file";
         }
     }
-    //TODO send a request to merge files
 
-    //TODO write a code to send multi appends.
+    //write a code to send multi appends.
     public void sendMultiAppendRequests(String hyDFSFileName, List<String> VMs, List<String> localFileNames) {
         for(int i=0; i<localFileNames.size(); i++) {
             int VMHash = HashFunction.hash(VMs.get(i));
@@ -256,7 +236,6 @@ public class Sender {
         }
     }
 
-    // request : get_file_details
     public HashMap<String, List<String>> getFileDetails(Member member, String request, String hyDFSFileNames) throws Exception {
         try {
             Map<String, Object> messageContent = new HashMap<>();
@@ -265,7 +244,6 @@ public class Sender {
             messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
             messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
             messageContent.put("msgId", FDProperties.generateRandomMessageId());
-//        messageContent.put("localFileName", localFileNames);
             //hyDFS Filenames should be comma separated
             messageContent.put("hyDFSFileNames", hyDFSFileNames);
             String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
@@ -335,14 +313,142 @@ public class Sender {
         }catch (Exception e){
             e.printStackTrace();
         }
-
-
         //If file not present then ask them to replicate the file. Can also use UPDATE/MERGE
-
         //If logs are inconsistent then it means appends may be in wrong order or not received any update
         //Send them those files under UPDATE/MERGE TYPE also with the file operations list.
-
         //whenever you do these operations put a log event of merge successful
+    }
 
+    public Map<String, Object> setMessage(String messageName){
+        Map<String, Object> messageContent = new HashMap<>();
+        messageContent.put("messageName", messageName);
+        messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
+        messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
+        messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
+        messageContent.put("msgId", FDProperties.generateRandomMessageId());
+        return messageContent;
+    }
+
+    // Use below function when a source performing node fails
+    public Map<Member, String> setSource(Member member, List<Member> op1, String filename, String range) {
+        Map<Member, String> status = new HashMap<>();
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("set_source");
+            messageContent.put("filename", filename);
+            messageContent.put("range", range);
+            messageContent.put("Total Op1s", op1.size());
+            int i=0;
+            for (Member value : op1) {
+                messageContent.put("op1_" + i, value.getName());
+                i++;
+            }
+            Message msg = new Message("set_source",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            status.put(member, sendMessage(IpAddress, port, msg));
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    // Use below function when a split or OP1 performing node fails
+    public Map<Member, String> setOp1(Member member, List<Member> source, List<Member> op2) {
+        Map<Member, String> status = new HashMap<>();
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("set_op1");
+            messageContent.put("Total Op2s", op2.size());
+            for (Member value : op2) {
+                messageContent.put("op2", value.getId());
+            }
+            Message msg = new Message("set_op1",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            status.put(member, sendMessage(IpAddress, port, msg));
+        }
+            catch (Exception e){
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    // Use below function when a count or OP2 performing node fails
+    public Map<Member, String> setOp2(Member member, List<Member> op1, String destFilename) {
+        Map<Member, String> status = new HashMap<>();
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("set_op2");
+            messageContent.put("destFilename", destFilename);
+            Message msg = new Message("set_op2",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            status.put(member, sendMessage(IpAddress, port, msg));
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    public Map<Member, String> setRoles(List<Member> sources, List<Member> op1,
+                                        List<Member> op2, String filename, List<String> ranges,
+                                        String destFilename){
+        Map<Member, String> status = new HashMap<>();
+        try{
+            for(int i = 0; i<sources.size(); i++){
+                Member member = sources.get(i);
+                String IpAddress = member.getIpAddress();
+                int port = Integer.parseInt(member.getPort());
+                Map<String, Object> messageContent = setMessage("set_source");
+                messageContent.put("filename", filename);
+                messageContent.put("range", ranges.get(i));
+                messageContent.put("Total Op1s", op1.size());
+                for (Member value : op1) {
+                    messageContent.put("op1", value.getId());
+                }
+                Message msg = new Message("set_source",
+                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                        messageContent);
+                status.put(member,sendMessage(IpAddress, port, msg));
+            }
+            for (Member member : op1) {
+                String IpAddress = member.getIpAddress();
+                int port = Integer.parseInt(member.getPort());
+                Map<String, Object> messageContent = setMessage("set_op1");
+                messageContent.put("Total Op2s", op2.size());
+                for (Member value : op2) {
+                    messageContent.put("op2", value.getId());
+                }
+                Message msg = new Message("set_op1",
+                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                        messageContent);
+                status.put(member, sendMessage(IpAddress, port, msg));
+            }
+            for (Member member : op2) {
+                String IpAddress = member.getIpAddress();
+                int port = Integer.parseInt(member.getPort());
+                Map<String, Object> messageContent = setMessage("set_op2");
+                messageContent.put("destFilename", destFilename);
+                Message msg = new Message("set_op2",
+                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                        messageContent);
+                status.put(member, sendMessage(IpAddress, port, msg));
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        return status;
     }
 }

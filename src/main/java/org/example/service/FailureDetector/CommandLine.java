@@ -82,26 +82,19 @@ public class CommandLine implements Runnable {
 
                         // Commands for Distributed File System Handling
                         case "create":
-                            //System.out.println("Starting a process current time is "+Member.getLocalDateTime());
                             sender.uploadFile(list[1], list[2]);
-//                            System.out.println(list[0] + list[1] + list[2]);
                             break;
-
                         case "get":
                             sender.get_File(list[1], list[2]);
-//                            System.out.println(list[0] + list[1] + list[2]);
                             break;
                         case "append":
                             sender.append_File(list[1], list[2]);
-//                            System.out.println(list[0] + list[1] + list[2]);
                             break;
                         case "merge":
                             String hyDFSFile = list[1];
-//                            sender.updateReplicas(Arrays.asList(hyDFSFile));
                             sender.mergeFile(hyDFSFile);
                             break;
                         case "ls":
-//                          TODO  below code is wrong ask each machine if they have this file
                             int fileNameHash = HashFunction.hash(list[1]);
                             List<Member> memberslist = new ArrayList<>();
                             memberslist.add(MembershipList.getMemberById(fileNameHash));
@@ -186,6 +179,15 @@ public class CommandLine implements Runnable {
                             System.out.println("Start time was " + startTime2 + " end time is "+ endTime2 +"time taken "+duration2);
                             break;
 
+                        // Commands for Rainstorm
+                        // RainStorm <op1 _exe> <op2 _exe> <hydfs_src_file> <hydfs_dest_filename> <num_tasks>
+                        case "RainStorm":
+                            String[] ops = Arrays.copyOfRange(list, 1, 3);
+                            String filename = list[4];
+                            String dest_filename = list[5];
+                            String num_tasks = list[6];
+
+                            break;
 
                         default:
                             System.out.println("Invalid command");
