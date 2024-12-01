@@ -15,13 +15,15 @@ public class Worker extends Thread {
     String ranges;
     String type;
     String filename;
-    public Worker(List<Member> source , List<Member> op1, List<Member> op2, String ranges, String type, String filename) {
+    String destFileName;
+    public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName) {
         this.source = source;
         this.op1 = op1;
         this.op2 = op2;
         this.ranges = ranges;
         this.type = type;
         this.filename = filename;
+        this.destFileName = destFileName;
     }
     //TODO Function : Source
     public void source(){

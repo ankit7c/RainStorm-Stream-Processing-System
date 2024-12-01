@@ -62,6 +62,10 @@ public class Convergence extends Thread {
                             break;
                     }
                 }
+                //TODO add the logic to handle failures of node
+                for (Integer failedNodeId : MembershipList.failedNodes){
+
+                }
                 MembershipList.failedNodes.clear();
                 checkMergeCounter++;
                 Thread.sleep(10000);

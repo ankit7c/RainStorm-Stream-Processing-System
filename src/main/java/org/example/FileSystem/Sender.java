@@ -338,10 +338,10 @@ public class Sender {
             Map<String, Object> messageContent = setMessage("set_source");
             messageContent.put("filename", filename);
             messageContent.put("range", range);
-            messageContent.put("Total Op1s", op1.size());
+            messageContent.put("num_tasks", op1.size());
             int i=0;
             for (Member value : op1) {
-                messageContent.put("op1_" + i, value.getName());
+                messageContent.put("op1_" + i, value.getId());
                 i++;
             }
             Message msg = new Message("set_source",
@@ -363,9 +363,15 @@ public class Sender {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("set_op1");
-            messageContent.put("Total Op2s", op2.size());
+            messageContent.put("num_tasks", op2.size());
+            int i=0;
+            for (Member value : source) {
+                messageContent.put("source_" + i, value.getId());
+                i++;
+            }
             for (Member value : op2) {
-                messageContent.put("op2", value.getId());
+                messageContent.put("op2_" + i, value.getId());
+                i++;
             }
             Message msg = new Message("set_op1",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
@@ -387,6 +393,12 @@ public class Sender {
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("set_op2");
             messageContent.put("destFilename", destFilename);
+            messageContent.put("num_tasks", op1.size());
+            int i=0;
+            for (Member value : op1) {
+                messageContent.put("op2_" + i, value.getId());
+                i++;
+            }
             Message msg = new Message("set_op2",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
@@ -406,45 +418,13 @@ public class Sender {
         try{
             for(int i = 0; i<sources.size(); i++){
                 Member member = sources.get(i);
-                String IpAddress = member.getIpAddress();
-                int port = Integer.parseInt(member.getPort());
-                Map<String, Object> messageContent = setMessage("set_source");
-                messageContent.put("filename", filename);
-                messageContent.put("range", ranges.get(i));
-                messageContent.put("Total Op1s", op1.size());
-                for (Member value : op1) {
-                    messageContent.put("op1", value.getId());
-                }
-                Message msg = new Message("set_source",
-                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
-                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
-                        messageContent);
-                status.put(member,sendMessage(IpAddress, port, msg));
+                status.putAll(setSource(member, op1, filename, ranges.get(i)));
             }
             for (Member member : op1) {
-                String IpAddress = member.getIpAddress();
-                int port = Integer.parseInt(member.getPort());
-                Map<String, Object> messageContent = setMessage("set_op1");
-                messageContent.put("Total Op2s", op2.size());
-                for (Member value : op2) {
-                    messageContent.put("op2", value.getId());
-                }
-                Message msg = new Message("set_op1",
-                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
-                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
-                        messageContent);
-                status.put(member, sendMessage(IpAddress, port, msg));
+                status.putAll(setOp1(member, sources, op2));
             }
             for (Member member : op2) {
-                String IpAddress = member.getIpAddress();
-                int port = Integer.parseInt(member.getPort());
-                Map<String, Object> messageContent = setMessage("set_op2");
-                messageContent.put("destFilename", destFilename);
-                Message msg = new Message("set_op2",
-                        String.valueOf(FDProperties.getFDProperties().get("machineIp")),
-                        String.valueOf(FDProperties.getFDProperties().get("machinePort")),
-                        messageContent);
-                status.put(member, sendMessage(IpAddress, port, msg));
+                status.putAll(setOp2(member, op1, destFilename));
             }
         }catch (Exception e) {
             e.printStackTrace();

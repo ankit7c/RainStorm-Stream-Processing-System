@@ -96,7 +96,7 @@ public class Leader {
                 break;
             case "op1":
                 //TODO when they join the system the  previous nodes should track the acks they sent and sent from appropriate location
-
+                // we will also need to check the HyDFS logs to see the acks processed.
                 //TODO Send a node a message that its next node has failed and it needs to change its next machine.
                 sender.setOp1(member, sources, op2);
                break;

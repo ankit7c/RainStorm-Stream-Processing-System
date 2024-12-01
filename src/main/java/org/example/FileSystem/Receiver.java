@@ -13,7 +13,6 @@ import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -132,21 +131,57 @@ public class Receiver extends Thread {
                         case "control":
                             // TODO based on the control message: check what leader has given us a role
                             // TODO based on the role take appropriate action
-                        case "node_failure":
+
                             // TODO if a node fails and you are a source then repeat the tuples
-                            break;
+                            // Add code below to handle failures
                         case "set_source":
-                            //TODO action a source needs to take
-                            int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("Total Op1s")));
-                            ArrayList<Member> members = new ArrayList<>();
-                            for (int i = 0; i < tot_ops; i++) {
-                                members.add(MembershipList.memberslist.get());
+                            //Action a source needs to take when a Leader asks to perform a task
+                            try {
+                                int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                List<Member> op1s = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
+                                }
+                                String range = String.valueOf(message.getMessageContent().get("range"));
+                                String filename = String.valueOf(message.getMessageContent().get("filename"));
+                                Worker worker = new Worker("source", null, op1s, null, range, filename, null);
+                                worker.start();
+                            }catch (Exception e){
+                                e.printStackTrace();
                             }
-                            Worker worker = new Worker();
                             break;
                         case "set_op1":
+                            //Action a OP1 needs to take when a Leader asks to perform a task
+                            try {
+                                int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                List<Member> sources = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("source_" + i)))));
+                                }
+                                List<Member> op2s = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
+                                }
+                                Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null);
+                                worker.start();
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
                             break;
                         case "set_op2":
+                            //Action a OP2 needs to take when a Leader asks to perform a task
+                            try {
+                                int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                List<Member> op1s = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
+                                }
+                                String destFilename = String.valueOf(message.getMessageContent().get("filename"));
+                                Worker worker = new Worker("set_op2", null, op1s, null, null, null, destFilename);
+                                worker.start();
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
                             break;
                         case "/exit":
                     }
