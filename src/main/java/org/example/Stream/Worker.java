@@ -1,10 +1,15 @@
 package org.example.Stream;
 
+import org.example.FileSystem.Sender;
 import org.example.entities.Member;
+import org.example.entities.MembershipList;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 //TODO based on role a Worker thread will be created and a specific function will be called
 public class Worker extends Thread {
@@ -16,6 +21,12 @@ public class Worker extends Thread {
     String type;
     String filename;
     String destFileName;
+    private Sender sender = new Sender();
+
+    public static List<Batch> batchesSent = new CopyOnWriteArrayList<>();
+    public static List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
+    public static List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
+
     public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName) {
         this.source = source;
         this.op1 = op1;
@@ -65,6 +76,48 @@ public class Worker extends Thread {
     public void op2(){
 
     }
+
+    public void sendBatchData(){
+
+    }
+
+    public void receiveBatchData(){
+
+    }
+
+    public void processop1(List<Tuple>l1){
+
+    }
+
+    public void processAck(String batchId){
+        batchesSent.removeIf(batch -> batch.getBatchId().equals(batchId));
+    }
+
+    private void processBatches(int OperationStage) throws Exception {
+            for(Batch currBatch : batchesReceived){
+                //TODO perform some operation
+                if(OperationStage==1){
+                    //TODO perform some operation & build new tuples data
+
+                    List<Tuple> tuplesForNextStage = new CopyOnWriteArrayList<>();
+                    //TODO decide batch id currentl giving random
+                    Batch nextStageBatch = new Batch("1", MembershipList.selfId,tuplesForNextStage);
+                    batchesToBeSent.add(nextStageBatch);
+                    //TODO decide how we are going to send batches , from here or from run of sender
+
+                } else if(OperationStage == 2){
+                    //TODO perform operstions and write to Console and HYDFS
+
+
+
+                    sender.sendAckToParent(currBatch.getSenderMachineId(),currBatch.getBatchId());
+                    //TODO Need to write sendack & receive ack , but where ?
+                }
+
+            }
+    }
+
+
     //TODO Function : run function for the thread
     public void run(){
         switch(type) {

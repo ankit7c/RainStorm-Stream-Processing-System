@@ -261,6 +261,28 @@ public class Sender {
         }
     }
 
+    public void sendAckToParent(int parentMachineId, String batchId) throws Exception {
+        try {
+            Map<String, Object> messageContent = new HashMap<>();
+            messageContent.put("messageName", "BatchAck");
+            messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
+            messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
+            messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
+            messageContent.put("msgId", FDProperties.generateRandomMessageId());
+            messageContent.put("batchId", batchId);
+            String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
+            Message msg = new Message("BatchAck",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    senderPort,
+                    messageContent);
+            Member member = MembershipList.getMemberById(parentMachineId);
+            String response = sendMessage(member.getIpAddress(), Integer.parseInt(member.getPort()), msg);
+            System.out.println(response);
+        }catch (Exception e){
+            throw new Exception("Could not able to reconnect");
+        }
+    }
+
     // Function is for merge and Re replication after failure
     public void updateReplicas(List<String> fileNames){
         //get two successors and ask them their fileOperation list to compare with ours for merging

@@ -183,6 +183,10 @@ public class Receiver extends Thread {
                                 e.printStackTrace();
                             }
                             break;
+                        case "BatchAck":
+                            String batchId = String.valueOf(message.getMessageContent().get("batchId"));
+                            //TODO ask saurabh
+
                         case "/exit":
                     }
                     // Send response back to client

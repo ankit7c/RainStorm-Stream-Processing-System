@@ -1,6 +1,9 @@
 package org.example.Stream;
 
-public class Tuple<K, V> {
+import java.io.Serializable;
+
+public class Tuple<K, V>  implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String id;
     private K key;
     private V value;
