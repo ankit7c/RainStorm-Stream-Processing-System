@@ -2,6 +2,7 @@ package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.Stream.Worker;
+import org.example.Stream.WorkerManager;
 import org.example.entities.*;
 
 import java.io.BufferedReader;
@@ -13,10 +14,7 @@ import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class Receiver extends Thread {
 
@@ -145,8 +143,12 @@ public class Receiver extends Thread {
                                 String range = String.valueOf(message.getMessageContent().get("range"));
                                 String filename = String.valueOf(message.getMessageContent().get("filename"));
                                 Worker worker = new Worker("source", null, op1s, null, range, filename, null);
-                                worker.start();
+                                int id = WorkerManager.initializeWorker(worker);
+                                WorkerManager.startWorker(id);
+                                //Return the id to leader
+                                out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
+                                out.println(-1);
                                 e.printStackTrace();
                             }
                             break;
@@ -163,7 +165,10 @@ public class Receiver extends Thread {
                                     sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
                                 }
                                 Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null);
-                                worker.start();
+                                int id = WorkerManager.initializeWorker(worker);
+                                WorkerManager.startWorker(id);
+                                //Return the id to leader
+                                out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -178,11 +183,28 @@ public class Receiver extends Thread {
                                 }
                                 String destFilename = String.valueOf(message.getMessageContent().get("filename"));
                                 Worker worker = new Worker("set_op2", null, op1s, null, null, null, destFilename);
-                                worker.start();
+                                int id = WorkerManager.initializeWorker(worker);
+//                                WorkerManager.startWorker(id);
+                                //Return the id to leader
+                                out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
                             break;
+                        case "start_processing":
+                            //TODO based on worker id Manager should set the receiver ports for the specific worker to listen and send data
+                            try {
+                                int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
+                                int totReceiverPorts = Integer.parseInt(String.valueOf(message.getMessageContent().get("total_receiver_ports")));
+                                ArrayList<String> receiverPorts = new ArrayList<>();
+                                for (int i = 0; i < totReceiverPorts; i++) {
+                                    receiverPorts.add(String.valueOf(message.getMessageContent().get("receiver_" + i)));
+                                }
+                                WorkerManager.workers.get(workerId).setReceiverPorts(receiverPorts);
+                                WorkerManager.startWorker(workerId);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
                         case "BatchAck":
                             String batchId = String.valueOf(message.getMessageContent().get("batchId"));
                             //TODO ask saurabh

@@ -1,6 +1,7 @@
 package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.Stream.Leader;
 import org.example.entities.*;
 
 import java.io.BufferedReader;
@@ -11,6 +12,7 @@ import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -352,8 +354,8 @@ public class Sender {
     }
 
     // Use below function when a source performing node fails
-    public Map<Member, String> setSource(Member member, List<Member> op1, String filename, String range) {
-        Map<Member, String> status = new HashMap<>();
+    public Map<Leader.WorkerTasks, String> setSource(Member member, List<Member> op1, String filename, String range) {
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
@@ -370,7 +372,8 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
-            status.put(member, sendMessage(IpAddress, port, msg));
+            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            status.put(new Leader.WorkerTasks("source", member, Integer.parseInt(resp[1])), resp[0]);
         }
         catch (Exception e){
             e.printStackTrace();
@@ -379,8 +382,8 @@ public class Sender {
     }
 
     // Use below function when a split or OP1 performing node fails
-    public Map<Member, String> setOp1(Member member, List<Member> source, List<Member> op2) {
-        Map<Member, String> status = new HashMap<>();
+    public Map<Leader.WorkerTasks, String> setOp1(Member member, List<Member> source, List<Member> op2) {
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
@@ -399,7 +402,8 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
-            status.put(member, sendMessage(IpAddress, port, msg));
+            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[1])), resp[0]);
         }
             catch (Exception e){
             e.printStackTrace();
@@ -408,8 +412,8 @@ public class Sender {
     }
 
     // Use below function when a count or OP2 performing node fails
-    public Map<Member, String> setOp2(Member member, List<Member> op1, String destFilename) {
-        Map<Member, String> status = new HashMap<>();
+    public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename) {
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
@@ -425,7 +429,8 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
-            status.put(member, sendMessage(IpAddress, port, msg));
+            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            status.put(new Leader.WorkerTasks("op2", member, Integer.parseInt(resp[1])), resp[0]);
         }
         catch (Exception e){
             e.printStackTrace();
@@ -433,10 +438,10 @@ public class Sender {
         return status;
     }
 
-    public Map<Member, String> setRoles(List<Member> sources, List<Member> op1,
+    public Map<Leader.WorkerTasks, String> setRoles(List<Member> sources, List<Member> op1,
                                         List<Member> op2, String filename, List<String> ranges,
                                         String destFilename){
-        Map<Member, String> status = new HashMap<>();
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try{
             for(int i = 0; i<sources.size(); i++){
                 Member member = sources.get(i);
@@ -452,5 +457,26 @@ public class Sender {
             e.printStackTrace();
         }
         return status;
+    }
+
+    public void startProcessing(Member member, int workerId, ArrayList<String> receiverPorts){
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("start_processing");
+            messageContent.put("worker_id", workerId);
+            messageContent.put("total_receiver_ports", receiverPorts);
+            int i=0;
+            for(String receiverPort : receiverPorts){
+                messageContent.put("receiver_port_" + i, receiverPort);
+            }
+            Message msg = new Message("start_processing",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }

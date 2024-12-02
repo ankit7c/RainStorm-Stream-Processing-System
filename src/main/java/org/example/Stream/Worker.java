@@ -7,6 +7,8 @@ import org.example.entities.MembershipList;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -21,11 +23,16 @@ public class Worker extends Thread {
     String type;
     String filename;
     String destFileName;
+    HashMap<Integer, Integer> receiverPorts = new HashMap<>();
     private Sender sender = new Sender();
 
+    int batchId = 0;
+    int tupleId = 0;
     public static List<Batch> batchesSent = new CopyOnWriteArrayList<>();
     public static List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
     public static List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
+
+    public int receiverPort;
 
     public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName) {
         this.source = source;
@@ -36,6 +43,14 @@ public class Worker extends Thread {
         this.filename = filename;
         this.destFileName = destFileName;
     }
+
+    public void setReceiverPorts(ArrayList<String> receiverPorts) {
+        for (String port : receiverPorts) {
+            String[] s = port.split(",");
+            this.receiverPorts.put(Integer.valueOf(s[0]), Integer.valueOf(s[1]));
+        }
+    }
+
     //TODO Function : Source
     public void source(){
         //TODO send the data to members present in op1 based on a partition function
@@ -46,17 +61,23 @@ public class Worker extends Thread {
             String[] range = ranges.split(",");
             int startLine = Integer.parseInt(range[0]);
             int endLine = Integer.parseInt(range[1]);
+            Batch batch = new Batch(String.valueOf(batchId), MembershipList.selfId, null);
             try (Scanner scanner = new Scanner(new File(filename))) {
                 int currentLine = 0;
                 while (scanner.hasNextLine()) {
                     currentLine++;
                     String line = scanner.nextLine();
                     if (currentLine >= startLine && currentLine <= endLine) {
-
+                        //TODO put the line in a form of tuple in the queue
+                        batch.getBatchData().add(new Tuple(String.valueOf(tupleId++), currentLine, line));
                         System.out.println(line);
                     }
                     if (currentLine > endLine) {
                         break; // Stop reading once we've passed the desired range
+                    }
+                    if(batch.getBatchData().size() >= 10){
+                        batchesToBeSent.add(batch);
+                        batch = new Batch(String.valueOf(batchId), MembershipList.selfId, null);
                     }
                 }
             }

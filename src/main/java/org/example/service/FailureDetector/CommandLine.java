@@ -5,6 +5,7 @@ import org.example.FileSystem.HashFunction;
 import org.example.FileSystem.HelperFunctions;
 import org.example.FileSystem.Sender;
 import org.example.Server;
+import org.example.Stream.Leader;
 import org.example.entities.FDProperties;
 import org.example.entities.FileData;
 import org.example.entities.Member;
@@ -29,7 +30,7 @@ public class CommandLine implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(CommandLine.class);
     private ConcurrentHashMap<String, Integer> map;
     private String threadName;
-
+    private Leader leader;
 
     @Override
     public void run() {
@@ -186,7 +187,7 @@ public class CommandLine implements Runnable {
                             String filename = list[4];
                             String dest_filename = list[5];
                             String num_tasks = list[6];
-
+                            leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks));
                             break;
 
                         default:

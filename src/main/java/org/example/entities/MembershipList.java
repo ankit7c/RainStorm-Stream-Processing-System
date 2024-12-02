@@ -128,7 +128,6 @@ public class MembershipList {
     }
 
     public static List<Member> getNextMembers(int id){
-        //TODO MP3 change member to memberlist
         List<Member> sortedMembers = memberslist.values().stream()
                 .sorted(Comparator.comparingInt(Member::getId))
                 .collect(Collectors.toList());
