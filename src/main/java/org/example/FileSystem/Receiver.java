@@ -142,7 +142,7 @@ public class Receiver extends Thread {
                                 }
                                 String range = String.valueOf(message.getMessageContent().get("range"));
                                 String filename = String.valueOf(message.getMessageContent().get("filename"));
-                                Worker worker = new Worker("source", null, op1s, null, range, filename, null);
+                                Worker worker = new Worker("source", null, op1s, null, range, filename, null, null);
                                 int id = WorkerManager.initializeWorker(worker);
                                 WorkerManager.startWorker(id);
                                 //Return the id to leader
@@ -156,6 +156,7 @@ public class Receiver extends Thread {
                             //Action a OP1 needs to take when a Leader asks to perform a task
                             try {
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                String opName = String.valueOf(message.getMessageContent().get("operation_name"));
                                 List<Member> sources = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("source_" + i)))));
@@ -164,7 +165,7 @@ public class Receiver extends Thread {
                                 for (int i = 0; i < tot_ops; i++) {
                                     sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
                                 }
-                                Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null);
+                                Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null, opName);
                                 int id = WorkerManager.initializeWorker(worker);
                                 WorkerManager.startWorker(id);
                                 //Return the id to leader
@@ -177,12 +178,13 @@ public class Receiver extends Thread {
                             //Action a OP2 needs to take when a Leader asks to perform a task
                             try {
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                String opName = String.valueOf(message.getMessageContent().get("operation_name"));
                                 List<Member> op1s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
                                 }
                                 String destFilename = String.valueOf(message.getMessageContent().get("filename"));
-                                Worker worker = new Worker("set_op2", null, op1s, null, null, null, destFilename);
+                                Worker worker = new Worker("set_op2", null, op1s, null, null, null, destFilename, opName);
                                 int id = WorkerManager.initializeWorker(worker);
 //                                WorkerManager.startWorker(id);
                                 //Return the id to leader

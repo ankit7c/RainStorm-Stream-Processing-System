@@ -291,15 +291,11 @@ public class Sender {
         try {
             String files = "";
             for (String fileName : fileNames) {
-//                System.out.println(fileName);
                 files += fileName + ",";
             }
-//            System.out.println(files);
             files = files.substring(0, files.length() - 1);
-//            System.out.println(files);
             List<Member> members = MembershipList.getNextMembers(MembershipList.selfId);
             for (Member member : members) {
-//                System.out.println(member.getName());
                 HashMap<String, List<String>> map = getFileDetails(member, "get_file_details", files);
 
                 //Compare file details and take appropriate action
@@ -307,7 +303,6 @@ public class Sender {
                     if (map.containsKey(fileName) || map.get(fileName)!=null) {
                         // compare the list of events to check if files are consistent
                         // if not consistent then ask to replace the file
-//                        System.out.println("File existed" + member.getName() + fileName);
                         if(compareLogs(map.get(fileName), getFileOperations(fileName))){ // call the compare list function
                             FileTransferManager.getRequestQueue().addRequest(new FileSender(
                                     "HyDFS/" + fileName,
@@ -321,7 +316,6 @@ public class Sender {
                         // if yes then do nothing
                     } else {
                         //Send the file to the node.
-//                        System.out.println("File did not existed" + member.getName() + fileName);
                         FileTransferManager.getRequestQueue().addRequest(new FileSender(
                                 "HyDFS/" + fileName,
                                 fileName,
@@ -373,7 +367,7 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
             String[] resp = sendMessage(IpAddress, port, msg).split(",");
-            status.put(new Leader.WorkerTasks("source", member, Integer.parseInt(resp[1])), resp[0]);
+            status.put(new Leader.WorkerTasks("source", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
         catch (Exception e){
             e.printStackTrace();
@@ -382,13 +376,14 @@ public class Sender {
     }
 
     // Use below function when a split or OP1 performing node fails
-    public Map<Leader.WorkerTasks, String> setOp1(Member member, List<Member> source, List<Member> op2) {
+    public Map<Leader.WorkerTasks, String> setOp1(Member member, List<Member> source, List<Member> op2, String op1_name) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("set_op1");
             messageContent.put("num_tasks", op2.size());
+            messageContent.put("operation_name", op1_name);
             int i=0;
             for (Member value : source) {
                 messageContent.put("source_" + i, value.getId());
@@ -403,7 +398,7 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
             String[] resp = sendMessage(IpAddress, port, msg).split(",");
-            status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[1])), resp[0]);
+            status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
             catch (Exception e){
             e.printStackTrace();
@@ -412,7 +407,7 @@ public class Sender {
     }
 
     // Use below function when a count or OP2 performing node fails
-    public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename) {
+    public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename, String op2_name) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
@@ -420,6 +415,7 @@ public class Sender {
             Map<String, Object> messageContent = setMessage("set_op2");
             messageContent.put("destFilename", destFilename);
             messageContent.put("num_tasks", op1.size());
+            messageContent.put("operation_name", op2_name);
             int i=0;
             for (Member value : op1) {
                 messageContent.put("op2_" + i, value.getId());
@@ -430,7 +426,7 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
             String[] resp = sendMessage(IpAddress, port, msg).split(",");
-            status.put(new Leader.WorkerTasks("op2", member, Integer.parseInt(resp[1])), resp[0]);
+            status.put(new Leader.WorkerTasks("op2", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
         catch (Exception e){
             e.printStackTrace();
@@ -440,7 +436,7 @@ public class Sender {
 
     public Map<Leader.WorkerTasks, String> setRoles(List<Member> sources, List<Member> op1,
                                         List<Member> op2, String filename, List<String> ranges,
-                                        String destFilename){
+                                        String destFilename, String[] ops){
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try{
             for(int i = 0; i<sources.size(); i++){
@@ -448,10 +444,10 @@ public class Sender {
                 status.putAll(setSource(member, op1, filename, ranges.get(i)));
             }
             for (Member member : op1) {
-                status.putAll(setOp1(member, sources, op2));
+                status.putAll(setOp1(member, sources, op2, ops[0]));
             }
             for (Member member : op2) {
-                status.putAll(setOp2(member, op1, destFilename));
+                status.putAll(setOp2(member, op1, destFilename, ops[1]));
             }
         }catch (Exception e) {
             e.printStackTrace();

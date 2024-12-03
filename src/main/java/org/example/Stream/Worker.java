@@ -19,10 +19,14 @@ public class Worker extends Thread {
     List<Member> source;
     List<Member> op1;
     List<Member> op2;
+    HashMap<Integer,Member> sources;
+    HashMap<Integer,Member> op1s;
+    HashMap<Integer,Member> op2s;
     String ranges;
     String type;
     String filename;
     String destFileName;
+    String operationName;
     HashMap<Integer, Integer> receiverPorts = new HashMap<>();
     private Sender sender = new Sender();
 
@@ -34,7 +38,7 @@ public class Worker extends Thread {
 
     public int receiverPort;
 
-    public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName) {
+    public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName, String operationName) {
         this.source = source;
         this.op1 = op1;
         this.op2 = op2;
@@ -42,12 +46,21 @@ public class Worker extends Thread {
         this.type = type;
         this.filename = filename;
         this.destFileName = destFileName;
+        this.operationName = operationName;
     }
 
     public void setReceiverPorts(ArrayList<String> receiverPorts) {
         for (String port : receiverPorts) {
             String[] s = port.split(",");
-            this.receiverPorts.put(Integer.valueOf(s[0]), Integer.valueOf(s[1]));
+            System.out.println("I am saving details for : " + port);
+            if(s[0].equals("source")){
+                sources.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+            }else if(s[0].equals("op1")){
+                op1s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+            }else{
+                op2s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+            }
+            this.receiverPorts.put(Integer.valueOf(s[2]), Integer.valueOf(s[3]));
         }
     }
 

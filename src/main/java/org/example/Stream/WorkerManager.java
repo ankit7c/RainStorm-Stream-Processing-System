@@ -2,10 +2,6 @@ package org.example.Stream;
 
 import org.example.entities.FDProperties;
 import org.example.entities.MembershipList;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 //TODO update this class to manage multiple worker nodes
@@ -23,6 +19,7 @@ public class WorkerManager {
     }
 
     public static void startWorker(int id) {
+        //TODO start the Stream Receiver from here
         Worker worker = workers.get(id);
         try{
             Thread.sleep(2000);

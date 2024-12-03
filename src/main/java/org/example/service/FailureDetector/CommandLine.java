@@ -187,7 +187,7 @@ public class CommandLine implements Runnable {
                             String filename = list[4];
                             String dest_filename = list[5];
                             String num_tasks = list[6];
-                            leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks));
+                            leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks), ops);
                             break;
 
                         default:
