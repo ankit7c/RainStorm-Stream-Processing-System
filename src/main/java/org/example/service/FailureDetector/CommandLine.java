@@ -30,7 +30,7 @@ public class CommandLine implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(CommandLine.class);
     private ConcurrentHashMap<String, Integer> map;
     private String threadName;
-    private Leader leader;
+    private Leader leader = new Leader();
 
     @Override
     public void run() {
@@ -181,12 +181,12 @@ public class CommandLine implements Runnable {
                             break;
 
                         // Commands for Rainstorm
-                        // RainStorm <op1 _exe> <op2 _exe> <hydfs_src_file> <hydfs_dest_filename> <num_tasks>
-                        case "RainStorm":
+                        // rainstorm op1_exe op2_exe input/business_1.txt hydfs_dest_filename 1
+                        case "rainstorm":
                             String[] ops = Arrays.copyOfRange(list, 1, 3);
-                            String filename = list[4];
-                            String dest_filename = list[5];
-                            String num_tasks = list[6];
+                            String filename = list[3];
+                            String dest_filename = list[4];
+                            String num_tasks = list[5];
                             leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks), ops);
                             break;
 
@@ -198,6 +198,7 @@ public class CommandLine implements Runnable {
                 }
 
             } catch (Exception e) {
+                e.printStackTrace();
                 logger.error("Error in Commandline while exectuing  command {}  Error  : {}", command, e);
             }
         }

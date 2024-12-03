@@ -19,9 +19,9 @@ public class Worker extends Thread {
     List<Member> source;
     List<Member> op1;
     List<Member> op2;
-    HashMap<Integer,Member> sources;
-    HashMap<Integer,Member> op1s;
-    HashMap<Integer,Member> op2s;
+    HashMap<Integer,Member> sources = new HashMap<>();
+    HashMap<Integer,Member> op1s = new HashMap<>();
+    HashMap<Integer,Member> op2s = new HashMap<>();
     String ranges;
     String type;
     String filename;
@@ -51,16 +51,18 @@ public class Worker extends Thread {
 
     public void setReceiverPorts(ArrayList<String> receiverPorts) {
         for (String port : receiverPorts) {
-            String[] s = port.split(",");
-            System.out.println("I am saving details for : " + port);
-            if(s[0].equals("source")){
-                sources.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
-            }else if(s[0].equals("op1")){
-                op1s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
-            }else{
-                op2s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+            if(!port.isBlank()) {
+                String[] s = port.split(":");
+                System.out.println("I am saving details for : " + port);
+                if (s[0].equals("source")) {
+                    sources.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+                } else if (s[0].equals("op1")) {
+                    op1s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+                } else {
+                    op2s.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
+                }
+                this.receiverPorts.put(Integer.valueOf(s[2]), Integer.valueOf(s[3]));
             }
-            this.receiverPorts.put(Integer.valueOf(s[2]), Integer.valueOf(s[3]));
         }
     }
 
@@ -82,16 +84,16 @@ public class Worker extends Thread {
                     String line = scanner.nextLine();
                     if (currentLine >= startLine && currentLine <= endLine) {
                         //TODO put the line in a form of tuple in the queue
-                        batch.getBatchData().add(new Tuple(String.valueOf(tupleId++), currentLine, line));
+//                        batch.getBatchData().add(new Tuple(String.valueOf(tupleId++), currentLine, line));
                         System.out.println(line);
                     }
                     if (currentLine > endLine) {
                         break; // Stop reading once we've passed the desired range
                     }
-                    if(batch.getBatchData().size() >= 10){
-                        batchesToBeSent.add(batch);
-                        batch = new Batch(String.valueOf(batchId), MembershipList.selfId, null);
-                    }
+//                    if(batch.getBatchData().size() >= 10){
+//                        batchesToBeSent.add(batch);
+//                        batch = new Batch(String.valueOf(batchId), MembershipList.selfId, null);
+//                    }
                 }
             }
         }catch (Exception e){

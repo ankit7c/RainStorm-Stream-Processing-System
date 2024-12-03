@@ -389,7 +389,9 @@ public class Sender {
                 messageContent.put("source_" + i, value.getId());
                 i++;
             }
+            i=0;
             for (Member value : op2) {
+                System.out.println("value.getId() : " + value.getId());
                 messageContent.put("op2_" + i, value.getId());
                 i++;
             }
@@ -410,6 +412,7 @@ public class Sender {
     public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename, String op2_name) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
+            System.out.println("op2");
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("set_op2");
@@ -418,7 +421,7 @@ public class Sender {
             messageContent.put("operation_name", op2_name);
             int i=0;
             for (Member value : op1) {
-                messageContent.put("op2_" + i, value.getId());
+                messageContent.put("op1_" + i, value.getId());
                 i++;
             }
             Message msg = new Message("set_op2",
@@ -461,10 +464,11 @@ public class Sender {
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("start_processing");
             messageContent.put("worker_id", workerId);
-            messageContent.put("total_receiver_ports", receiverPorts);
+            messageContent.put("total_receiver_ports", receiverPorts.size());
             int i=0;
             for(String receiverPort : receiverPorts){
                 messageContent.put("receiver_port_" + i, receiverPort);
+                i++;
             }
             Message msg = new Message("start_processing",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),

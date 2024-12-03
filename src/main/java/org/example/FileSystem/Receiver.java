@@ -135,6 +135,7 @@ public class Receiver extends Thread {
                         case "set_source":
                             //Action a source needs to take when a Leader asks to perform a task
                             try {
+                                System.out.println("set_source");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 List<Member> op1s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
@@ -144,7 +145,7 @@ public class Receiver extends Thread {
                                 String filename = String.valueOf(message.getMessageContent().get("filename"));
                                 Worker worker = new Worker("source", null, op1s, null, range, filename, null, null);
                                 int id = WorkerManager.initializeWorker(worker);
-                                WorkerManager.startWorker(id);
+//                                WorkerManager.startWorker(id);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
@@ -155,6 +156,7 @@ public class Receiver extends Thread {
                         case "set_op1":
                             //Action a OP1 needs to take when a Leader asks to perform a task
                             try {
+                                System.out.println("set_op1");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
                                 List<Member> sources = new ArrayList<>();
@@ -163,11 +165,11 @@ public class Receiver extends Thread {
                                 }
                                 List<Member> op2s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
-                                    sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
+                                    op2s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
                                 }
                                 Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null, opName);
                                 int id = WorkerManager.initializeWorker(worker);
-                                WorkerManager.startWorker(id);
+//                                WorkerManager.startWorker(id);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
@@ -177,6 +179,7 @@ public class Receiver extends Thread {
                         case "set_op2":
                             //Action a OP2 needs to take when a Leader asks to perform a task
                             try {
+                                System.out.println("set_op2");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
                                 List<Member> op1s = new ArrayList<>();
@@ -200,7 +203,7 @@ public class Receiver extends Thread {
                                 int totReceiverPorts = Integer.parseInt(String.valueOf(message.getMessageContent().get("total_receiver_ports")));
                                 ArrayList<String> receiverPorts = new ArrayList<>();
                                 for (int i = 0; i < totReceiverPorts; i++) {
-                                    receiverPorts.add(String.valueOf(message.getMessageContent().get("receiver_" + i)));
+                                    receiverPorts.add(String.valueOf(message.getMessageContent().get("receiver_port_" + i)));
                                 }
                                 WorkerManager.workers.get(workerId).setReceiverPorts(receiverPorts);
                                 WorkerManager.startWorker(workerId);

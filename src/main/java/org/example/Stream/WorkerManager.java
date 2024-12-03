@@ -14,6 +14,7 @@ public class WorkerManager {
         int workerId = Integer.parseInt(String.valueOf(MembershipList.selfId) + id++);
         workers.put(workerId,worker);
         worker.receiverPort = currReceiverPort;
+        System.out.println("Worker " + workerId + " initialized with current port " + currReceiverPort);
         currReceiverPort = currReceiverPort + 10;
         return workerId;
     }
