@@ -1,15 +1,21 @@
 package org.example.Stream;
 
+import org.example.Executor.OperationExecutor;
+import org.example.FileSystem.FileSender;
+import org.example.FileSystem.HashFunction;
 import org.example.FileSystem.Sender;
 import org.example.entities.Member;
 import org.example.entities.MembershipList;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -132,12 +138,10 @@ public class Worker extends Thread {
                     .map(Object::toString)
                     .collect(Collectors.toList());
 
-            List<String> result = (List<String>)
-                    SplitExecutor.executePrecompiledCode(classDir,
-                            "org.example.Split",  // Full package path
-                            "split",
-                            linesFromBatch
-                    );
+            OperationExecutor.set("op1");
+            OperationExecutor.loadInstance();
+            // Function to process data
+            List<String> result = (List<String>) OperationExecutor.executeCode(linesFromBatch);
 
             int totalBatches = op2.size();
             List<Batch>op2Batches = new CopyOnWriteArrayList<>();
@@ -158,6 +162,7 @@ public class Worker extends Thread {
             logList.add(currBatch.getBatchId()+"_Ack Sent");
             logList.add(currBatch.getBatchId()+"_Processed");
             batchesReceived.remove(currBatch);
+
         }
     }
 
@@ -192,12 +197,15 @@ public class Worker extends Thread {
             batchesReceived.remove(currBatch);
         }
 
-        Map<String, Long> result = (Map<String, Long>)
-                CountExecutor.executePrecompiledCode( classDir,
-                        "org.example.WordCount",  // Full package path
-                        "processWords",
-                        wordsList
-                );
+        OperationExecutor.set("op2");
+        OperationExecutor.loadInstance();
+        OperationExecutor.loadCode();
+        Map<String, Long> result = (Map<String, Long>) OperationExecutor.executeCode(wordsList);
+        //Save and send the logs to HyDFS
+        saveLog(logList);
+        sendLog();
+        //Send the Data to HyDFS
+        sendData();
     }
 
     public void sendBatchData(){
@@ -242,6 +250,70 @@ public class Worker extends Thread {
     public int getReceiverPort() {
         return receiverPort;
     }
+    public String saveLog(List<String> logs) {
+        // Create filename in the format "WorkerID_type.log"
+        String logFileName = selfId + "_" + type +"_log.txt";
+
+        try {
+            // Create a File object with the filename
+            File logFile = new File(logFileName);
+
+            // Create FileWriter with false parameter to overwrite existing file
+            try (FileWriter writer = new FileWriter(logFile, false)) {
+                // Iterate through the logs and write each log entry to the file
+                for (String log : logs) {
+                    writer.write(log + System.lineSeparator());
+                }
+            }
+
+            // Return the absolute path of the created file
+            return logFile.getAbsolutePath();
+        } catch (IOException e) {
+            // Handle any potential IO exceptions
+            System.err.println("Error writing logs to file: " + e.getMessage());
+            return "";
+        }
+    }
+
+    public void sendLog(){
+        String FileName = selfId + "_" + type +"_log.txt";
+        String HyDFSFileName = selfId + "_" + type +"_log.txt";
+        try {
+            int fileNameHash = HashFunction.hash(HyDFSFileName);
+            Member member = MembershipList.getMemberById(fileNameHash);
+            FileSender fileSender = new FileSender(
+                    FileName,
+                    HyDFSFileName,
+                    member.getIpAddress(),
+                    Integer.parseInt(member.getPort()),
+                    "UPLOAD",
+                    "APPEND",
+                    "");
+            fileSender.run();
+        } catch (RuntimeException e) {
+            System.out.println("File Append was unsuccessful");
+        }
+    }
+
+    public void sendData(){
+        String FileName = selfId + "_" + type +".ser";
+        String HyDFSFileName = selfId + "_" + type +".ser";
+        try {
+            int fileNameHash = HashFunction.hash(HyDFSFileName);
+            Member member = MembershipList.getMemberById(fileNameHash);
+            FileSender fileSender = new FileSender(
+                    FileName,
+                    HyDFSFileName,
+                    member.getIpAddress(),
+                    Integer.parseInt(member.getPort()),
+                    "UPLOAD",
+                    "APPEND",
+                    "");
+            fileSender.run();
+        } catch (RuntimeException e) {
+            System.out.println("File Append was unsuccessful");
+        }
+    }
 
     public void setReceiverPort(int receiverPort) {
         this.receiverPort = receiverPort;
@@ -255,10 +327,18 @@ public class Worker extends Thread {
                 source();
                 break;
             case "op1":
-                op1();
+                try {
+                    op1();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 break;
             case "op2":
-                op2();
+                try {
+                    op2();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 break;
         }
 

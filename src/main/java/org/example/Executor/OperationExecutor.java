@@ -1,5 +1,7 @@
 package org.example.Executor;
 
+import org.example.entities.ExecutorProperties;
+
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -19,18 +21,40 @@ public class OperationExecutor {
 
     public static void set(String operationName) {
         //TODO read the config file to get the above details
-        if(operationName.equals("op1")) {
-            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
-            fullClassName = "Split";
-            methodName = "split";
-        }else if(operationName.equals("op2")) {
-            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
-            fullClassName = "WordCount";
-            methodName = "processWords";
-            saveMethodName = "saveState";
-            loadMethodName = "loadState";
-            savePath = "C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\";
-            saveFileName = "word_count.ser";
+//        if(operationName.equals("op1")) {
+//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
+//            fullClassName = "Split";
+//            methodName = "split";
+//        }else if(operationName.equals("op2")) {
+//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
+//            fullClassName = "WordCount";
+//            methodName = "processWords";
+//            saveMethodName = "saveState";
+//            loadMethodName = "loadState";
+//            savePath = "C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\";
+//            saveFileName = "word_count.ser";
+//        }
+
+        //REad the app.properties and load the class
+        int totExecutables = Integer.parseInt(String.valueOf(ExecutorProperties.getexeProperties().get("totExecutables")));
+        try {
+            for (int i = 0; i < totExecutables; i++) {
+                String className = String.valueOf(ExecutorProperties.getexeProperties().get("class" + i));
+                if (className.equals(operationName)) {
+                    fullClassName = className;
+                    methodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
+                    classDir = new File(String.valueOf(ExecutorProperties.getexeProperties().get("exeDir")));
+                    if (Boolean.parseBoolean(String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i)))) {
+                        saveMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
+                        savePath = String.valueOf(ExecutorProperties.getexeProperties().get("savePath" + i));
+                        saveFileName = String.valueOf(ExecutorProperties.getexeProperties().get("saveFileName" + i));
+                        loadMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("loadMethodName" + i));
+                    }
+                }
+            }
+        }catch (Exception e){
+            System.out.println("Error while searching for executable");
+            e.printStackTrace();
         }
     }
 
