@@ -1,20 +1,28 @@
 package org.example.Stream;
 
 import java.io.Serializable;
-import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Batch implements Serializable {
     private static final long serialVersionUID = 1L;
     private String batchId;
-    private int senderMachineId ;
+    private int senderWorkerId;
+    private int receiverWorkerId;
     private List<Tuple> BatchData = new CopyOnWriteArrayList<>();
 
 
-    public Batch(String batchId, int senderMachineId, List<Tuple> batchData) {
+
+    public Batch(String batchId, int senderWorkerId, List<Tuple> batchData) {
         this.batchId = batchId;
-        this.senderMachineId = senderMachineId;
+        this.senderWorkerId = senderWorkerId;
+        this.BatchData = batchData;
+    }
+
+    public Batch(String batchId, int senderWorkerId, int receiverWorkerId, List<Tuple> batchData) {
+        this.batchId = batchId;
+        this.senderWorkerId = senderWorkerId;
+        this.receiverWorkerId = receiverWorkerId;
         this.BatchData = batchData;
     }
 
@@ -23,12 +31,12 @@ public class Batch implements Serializable {
         this.BatchData = batchData;
     }
 
-    public int getSenderMachineId() {
-        return senderMachineId;
+    public int getSenderWorkerId() {
+        return senderWorkerId;
     }
 
-    public void setSenderMachineId(int senderMachineId) {
-        this.senderMachineId = senderMachineId;
+    public void setSenderWorkerId(int senderWorkerId) {
+        this.senderWorkerId = senderWorkerId;
     }
 
     public String getBatchId() {
@@ -45,6 +53,14 @@ public class Batch implements Serializable {
 
     public void setBatchData(List<Tuple> batchData) {
         BatchData = batchData;
+    }
+
+    public int getReceiverWorkerId() {
+        return receiverWorkerId;
+    }
+
+    public void setReceiverWorkerId(int receiverWorkerId) {
+        this.receiverWorkerId = receiverWorkerId;
     }
 
 

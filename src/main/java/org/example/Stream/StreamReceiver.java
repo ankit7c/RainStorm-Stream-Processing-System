@@ -14,16 +14,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class StreamReceiver extends Thread{
 
     //public static List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
+    private Worker worker;
+
+    public StreamReceiver(Worker worker) {
+        this.worker = worker;
+    }
 
     public void ListenAck(){
 
     }
 
     public void receiveBatches() {
-        int serverPort = 5010;
 
-        try (ServerSocket serverSocket = new ServerSocket(serverPort)) {
-            System.out.println(" Stream Receiver is listening on port " + serverPort);
+
+        try (ServerSocket serverSocket = new ServerSocket(worker.getReceiverPort())) {
+            System.out.println(" Stream Receiver is listening on port " + worker.getReceiverPort());
 
             while (true) {
                 try (Socket socket = serverSocket.accept();
@@ -33,8 +38,16 @@ public class StreamReceiver extends Thread{
                     Object receivedObject = objectInputStream.readObject();
                     if (receivedObject instanceof Batch) {
                         Batch receivedBatch = (Batch) receivedObject;
-                        Worker.batchesReceived.add(receivedBatch);
-                        out.println("Batch " + receivedBatch.getBatchId() + " processed successfully.");
+                        worker.batchesReceived.add(receivedBatch);
+                        //out.println("Batch " + receivedBatch.getBatchId() + " processed successfully.");
+                        worker.logList.add(receivedBatch.getBatchId()+"_Received");
+                    } else if (receivedObject instanceof String) {
+                            String message = (String) receivedObject;
+                            if(message.contains("BatchAck")){
+                                int index = message.indexOf("BatchAck")+ 8;
+                                String batchId = message.substring(index);
+                                worker.processAck(batchId);
+                            }
                     } else {
                         System.out.println("Invalid object received.");
                         out.println("Error: Expected Batch object.");

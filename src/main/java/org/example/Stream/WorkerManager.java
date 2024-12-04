@@ -13,6 +13,7 @@ public class WorkerManager {
     public static int initializeWorker(Worker worker) {
         int workerId = Integer.parseInt(String.valueOf(MembershipList.selfId) + id++);
         workers.put(workerId,worker);
+        worker.selfId = workerId;
         worker.receiverPort = currReceiverPort;
         System.out.println("Worker " + workerId + " initialized with current port " + currReceiverPort);
         currReceiverPort = currReceiverPort + 10;

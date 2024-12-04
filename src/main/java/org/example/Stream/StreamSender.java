@@ -1,45 +1,71 @@
 package org.example.Stream;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
+import org.example.entities.FDProperties;
+import org.example.entities.Member;
+import org.example.entities.MembershipList;
+import org.example.entities.Message;
+
+import java.io.*;
 import java.net.Socket;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.HashMap;
+import java.util.Map;
 
 //TODO code to send tuples to the next node
 public class StreamSender extends Thread{
 
-//    public static List<Batch> batchesSent = new CopyOnWriteArrayList<>();
-//    public static List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
-//
-//    public void sendBatchData(){
-//
-//    }
-    public String sendBatch(String ipAddress, int port, Batch batch) {
-        try (Socket socket = new Socket(ipAddress, port);
-             ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+    private Worker worker;
 
-            // Send the serialized Batch object
-            objectOutputStream.writeObject(batch);
 
-            // Read response from the receiver
-            return in.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "Unsuccessful";
+
+    public StreamSender(Worker worker) {
+        this.worker = worker;
+    }
+
+    private void sendBatches() {
+        while (true) {
+            synchronized (worker.batchesToBeSent) {
+                if (worker.batchesToBeSent.isEmpty()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.err.println("StreamSender thread interrupted: " + e.getMessage());
+                        break;
+                    }
+                    continue;
+                }
+
+                for(Batch batchToSend : worker.batchesToBeSent){
+                    try {
+                        int receiverPort = worker.receiverPorts.get(batchToSend.getReceiverWorkerId());
+                        String receiverIp = "";
+                        if(worker.op1s.containsKey(batchToSend.getReceiverWorkerId())){
+                            Member member = worker.op1s.get(batchToSend.getReceiverWorkerId());
+                            receiverIp = member.getIpAddress();
+                        }else if(worker.op2s.containsKey(batchToSend.getReceiverWorkerId())){
+                            Member member = worker.op2s.get(batchToSend.getReceiverWorkerId());
+                            receiverIp = member.getIpAddress();
+                        }
+                        Socket socket = new Socket(receiverIp, receiverPort);
+                        ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+                        outputStream.writeObject(batchToSend);
+                        outputStream.flush();
+                        worker.batchesSent.add(batchToSend);
+                        worker.batchesToBeSent.remove(batchToSend);
+                    } catch (IOException e) {
+                        System.err.println("Error sending batch " + batchToSend.getBatchId() + " to receiver " + batchToSend.getReceiverWorkerId());
+
+                    }
+                }
+            }
         }
     }
 
-//    @Override
-//    public void run() {
-//        if(Worker.batchesToBeSent!=null && !Worker.batchesToBeSent.isEmpty()){
-//
-//        }
-//    }
+
+    @Override
+    public void run() {
+        sendBatches();
+
+    }
 
 }

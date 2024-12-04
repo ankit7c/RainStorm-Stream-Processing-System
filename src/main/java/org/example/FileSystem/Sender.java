@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.Stream.Leader;
 import org.example.entities.*;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
@@ -263,25 +260,16 @@ public class Sender {
         }
     }
 
-    public void sendAckToParent(int parentMachineId, String batchId) throws Exception {
+    public void sendAckToParent(String receiverIp, int receiverPort, int parentMachineId, String batchId) throws Exception {
         try {
-            Map<String, Object> messageContent = new HashMap<>();
-            messageContent.put("messageName", "BatchAck");
-            messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
-            messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
-            messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
-            messageContent.put("msgId", FDProperties.generateRandomMessageId());
-            messageContent.put("batchId", batchId);
-            String senderPort = "" + FDProperties.getFDProperties().get("machinePort");
-            Message msg = new Message("BatchAck",
-                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
-                    senderPort,
-                    messageContent);
-            Member member = MembershipList.getMemberById(parentMachineId);
-            String response = sendMessage(member.getIpAddress(), Integer.parseInt(member.getPort()), msg);
-            System.out.println(response);
-        }catch (Exception e){
-            throw new Exception("Could not able to reconnect");
+            Socket socket = new Socket(receiverIp, receiverPort);
+            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+            String message = "BatchAck"+batchId;
+            outputStream.writeObject(message);
+            outputStream.flush();
+        } catch (IOException e) {
+            System.err.println("Error sending batchAcK " + batchId + " to Parent " + parentMachineId);
+
         }
     }
 
