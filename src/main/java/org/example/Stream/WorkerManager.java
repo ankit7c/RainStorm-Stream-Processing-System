@@ -46,7 +46,7 @@ public class WorkerManager {
 
     public static void assignTuple(int workerId, int senderId, Member member, Tuple tuple) {
         try {
-            System.out.println("Assigning tuple");
+            System.out.println("Assigning tuple : " + workerId);
             consumerQueues.get(workerId).put(new QueueData(senderId, workerId, member, tuple, "tuple", tuple.getId()));
         }catch (Exception e){
             e.printStackTrace();

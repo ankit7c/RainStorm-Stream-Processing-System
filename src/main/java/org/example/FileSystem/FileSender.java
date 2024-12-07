@@ -39,10 +39,10 @@ public class FileSender implements Runnable {
         this.message = message;
     }
     public void run() {
-        System.out.println("Connecting to server at " + IpAddress + ":" + port);
+//        System.out.println("Connecting to server at " + IpAddress + ":" + port);
         try (SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(IpAddress, port));
              FileChannel fileChannel = FileChannel.open(Paths.get(localFileName), StandardOpenOption.READ)) {
-            System.out.println("Sending file");
+//            System.out.println("Sending file");
 
             JSONObject metadataJson = new JSONObject();
             metadataJson.put("FILENAME", hyDFSFileName);

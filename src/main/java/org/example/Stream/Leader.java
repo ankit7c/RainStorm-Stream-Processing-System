@@ -42,11 +42,11 @@ public class Leader {
     //Function to determine which nodes are active and assign tasks to each of them
     public void initializeNodes(String filename,
                                 String destFilename, int num_tasks, String[] ops){
-        try{
-            Test.testExe();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+//        try{
+//            Test.testExe();
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
         ConcurrentSkipListMap<Integer, Member> memberslist = MembershipList.memberslist;
         //Remove itself
         memberslist.remove(MembershipList.selfId);

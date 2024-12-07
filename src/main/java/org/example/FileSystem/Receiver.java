@@ -30,12 +30,12 @@ public class Receiver extends Thread {
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-                    System.out.println("Client connected");
+//                    System.out.println("Client connected");
 
                     // Read message from client
                     String received = in.readLine();
                     Message message = Message.process(socket.getInetAddress(), String.valueOf(socket.getPort()), received);
-                    System.out.println("Received from client: " + message);
+//                    System.out.println("Received from client: " + message);
                     String response = "Successful";
                     switch (message.getMessageName()){
                         case "get_file" :
@@ -246,7 +246,7 @@ public class Receiver extends Thread {
                             break;
                     }
                     // Send response back to client
-                    System.out.println("Sent to client: " + response);
+//                    System.out.println("Sent to client: " + response);
                 }
             }
         } catch (IOException e) {

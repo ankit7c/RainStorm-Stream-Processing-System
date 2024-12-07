@@ -101,7 +101,7 @@ public class FileReceiver extends Thread {
                         buffer.clear();
                     }
                     buffer.clear();
-                    System.out.println("File received successfully! and saved at " + hyDFSFileName);
+//                    System.out.println("File received successfully! and saved at " + hyDFSFileName);
 
 
                     if(fileType.equals("UPLOAD")) {

@@ -22,7 +22,7 @@ public class ExecutorProperties {
         int totalExecutors = Integer.parseInt(prop.getProperty("totExecutables"));
         exeProperties.put("totExecutables",Integer.parseInt(prop.getProperty("totExecutables")));
         exeProperties.put("exeDir",String.valueOf(prop.getProperty("exeDir")));
-        for(int i = 0; i < totalExecutors; i++){
+        for(int i = 1; i <= totalExecutors; i++){
             exeProperties.put("class"+i,String.valueOf(prop.getProperty("class"+i)));
             exeProperties.put("methodName"+i,String.valueOf(prop.getProperty("methodName"+i)));
             boolean stateful = Boolean.parseBoolean(prop.getProperty("stateful"+i));

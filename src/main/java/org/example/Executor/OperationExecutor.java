@@ -44,12 +44,12 @@ public class OperationExecutor {
         //REad the app.properties and load the class
         int totExecutables = Integer.parseInt(String.valueOf(ExecutorProperties.getexeProperties().get("totExecutables")));
         try {
-            for (int i = 0; i < totExecutables; i++) {
+            classDir = new File(String.valueOf(ExecutorProperties.getexeProperties().get("exeDir")));
+            for (int i = 1; i <= totExecutables; i++) {
                 String className = String.valueOf(ExecutorProperties.getexeProperties().get("class" + i));
                 if (className.equals(operationName)) {
                     fullClassName = className;
                     methodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
-                    classDir = new File(String.valueOf(ExecutorProperties.getexeProperties().get("exeDir")));
                     if (Boolean.parseBoolean(String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i)))) {
                         saveMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
                         savePath = String.valueOf(ExecutorProperties.getexeProperties().get("savePath" + i));

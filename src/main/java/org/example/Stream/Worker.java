@@ -38,9 +38,6 @@ public class Worker extends Thread {
     HashMap<Integer, Integer> partMapOp2 = new HashMap<>();
     private Sender sender = new Sender();
 
-    public List<Batch> batchesSent = new CopyOnWriteArrayList<>();
-    public List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
-    public List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
     public List<QueueData> tuplesSent = new CopyOnWriteArrayList<>();
     public List<QueueData> tuplesToBeSent= new CopyOnWriteArrayList<>();
     public List<QueueData> tuplesReceived = new CopyOnWriteArrayList<>();
@@ -149,36 +146,35 @@ public class Worker extends Thread {
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).take();
                 if(queueData.type.equals("tuple")) {
                     //TODO get the code processed from the executor
+                    OperationExecutor.set("Filter");
+                    OperationExecutor.loadInstance();
+                    System.out.println("Got Tuple id : " + queueData.tupleId);
                     Map<String,String> result = (Map<String,String>)
                             OperationExecutor.executeCode(
                                     queueData.tuple,
                                     "Streetname");
-                    List<Tuple> tupleResult = new ArrayList<>();
                     Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
                     int count = 0;
                     while (iterator.hasNext()) {
                         Map.Entry<String, String> entry = iterator.next();
-                        new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
+                        Tuple<String, String> tuple = new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
                         count++;
+                        int hash = generateHashInRange(tuple.getKey(), op2s.size());
+                        int workerId = partMapOp2.get(hash);
+                        Member member = op2s.get(workerId);
+                        //TODO get a successful or unsucessful message from the sender
+                        //if it is unsuccessful then it means the node has failed, so just put a log that unable to send to __ worker
+                        String response = sender.sendTuple(tuple, member, workerId, selfId);
+                        tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
+                        logList.add(queueData.tuple.getId() + "_Processed");
+                        //Save and send the logs to HyDFS
+                        saveLog(logList);
+                        logList.clear();
+                        sendLog("APPEND");
+                        System.out.println("Member : " + member.getName() + " " + workerId);
+                        sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                        logList.add(queueData.tuple.getId() + "_Ack Sent");
                     }
-                    String tupleKey = "1";
-                    System.out.println("Got Tuple id : " + queueData.tupleId);
-                    Tuple<String, String> tuple = new Tuple<>(tupleKey, "1", "afdnk");
-                    int hash = generateHashInRange(tuple.getKey(), op2s.size());
-                    int workerId = partMapOp2.get(hash);
-                    Member member = op2s.get(workerId);
-                    //TODO get a successful or unsucessful message from the sender
-                    //if it is unsuccessful then it means the node has failed, so just put a log that unable to send to __ worker
-                    String response = sender.sendTuple(tuple, member, workerId, selfId);
-                    tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
-                    logList.add(queueData.tuple.getId() + "_Processed");
-                    //Save and send the logs to HyDFS
-                    saveLog(logList);
-                    logList.clear();
-                    sendLog("APPEND");
-                    System.out.println("Member : " + member.getName() + " " + workerId);
-                    sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
-                    logList.add(queueData.tuple.getId() + "_Ack Sent");
                 }else{
                     tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
                     System.out.println("Received Ack");
@@ -196,22 +192,32 @@ public class Worker extends Thread {
             while (true) {
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).take();
                 if(queueData.type.equals("tuple")) {
-                    System.out.println("GOt Tuple id : " + queueData.tupleId);
+                    System.out.println("Got Tuple id : " + queueData.tupleId);
                     //TODO get the code processed from the executor
-                    String tupleKey = "1";
-                    Tuple<String, String> tuple = new Tuple<>(tupleKey, "1", "fad");
-                    logList.add(queueData.tuple.getId() + "_Ack Sent");
-                    logList.add(queueData.tuple.getId() + "_Processed");
-                    //Save and send the logs to HyDFS
-                    saveLog(logList);
-                    sendLog("APPEND");
-                    logList.clear();
-//                    //Send the Data to HyDFS
-//                    sendData();
-                    //send data to Introducer
-                    System.out.println("Sending data to into");
-                    sender.sendTupleToLeader(String.valueOf(tuple.getValue()), WorkerManager.leader, selfId);
-                    sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                    OperationExecutor.set("ExtractColumns");
+                    OperationExecutor.loadInstance();
+                    Map<String,String> result = (Map<String,String>)
+                            OperationExecutor.executeCode(
+                                    queueData.tuple,
+                                    "Streetname"
+                            );
+                    Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
+                    int count = 0;
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, String> entry = iterator.next();
+                        Tuple<String, String> tuple = new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
+                        logList.add(queueData.tuple.getId() + "_Ack Sent");
+                        logList.add(queueData.tuple.getId() + "_Processed");
+                        //Save and send the logs to HyDFS
+                        saveLog(logList);
+                        sendLog("APPEND");
+                        logList.clear();
+                        //                    //Send the Data to HyDFS
+                        //                    sendData();
+                        //send data to Introducer
+                        sender.sendTupleToLeader(String.valueOf(tuple.getValue()), WorkerManager.leader, selfId);
+                        sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                    }
                 }else{
                     tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
                     System.out.println("Received Ack");
@@ -221,14 +227,6 @@ public class Worker extends Thread {
             System.out.println("Worker failed while processing OP1 : " + selfId);
             e.printStackTrace();
         }
-    }
-
-    public void processAck(String batchId){
-        batchesSent.removeIf(batch -> batch.getBatchId().equals(batchId));
-    }
-
-    public int getReceiverPort() {
-        return receiverPort;
     }
 
     public String saveLog(List<String> logs) {
@@ -319,13 +317,8 @@ public class Worker extends Thread {
         return hash % range;
     }
 
-    public void setReceiverPort(int receiverPort) {
-        this.receiverPort = receiverPort;
-    }
     //TODO Function : run function for the thread
     public void run(){
-//        streamReceiver.start();
-//        streamSender.start();
         switch(type) {
             case "source":
                 System.out.println("starting source");

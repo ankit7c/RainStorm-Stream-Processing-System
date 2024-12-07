@@ -35,7 +35,7 @@ public class FileTransferManager {
                 }
             }
         }
-        System.out.println("Event: " + event);
+//        System.out.println("Event: " + event);
     }
 
     public static List<String> getEventLog() {
