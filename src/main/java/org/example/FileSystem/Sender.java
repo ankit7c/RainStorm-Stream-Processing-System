@@ -2,6 +2,7 @@ package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.Stream.Leader;
+import org.example.Stream.Tuple;
 import org.example.entities.*;
 
 import java.io.*;
@@ -260,19 +261,6 @@ public class Sender {
         }
     }
 
-    public void sendAckToParent(String receiverIp, int receiverPort, int parentMachineId, String batchId) throws Exception {
-        try {
-            Socket socket = new Socket(receiverIp, receiverPort);
-            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
-            String message = "BatchAck"+batchId;
-            outputStream.writeObject(message);
-            outputStream.flush();
-        } catch (IOException e) {
-            System.err.println("Error sending batchAcK " + batchId + " to Parent " + parentMachineId);
-
-        }
-    }
-
     // Function is for merge and Re replication after failure
     public void updateReplicas(List<String> fileNames){
         //get two successors and ask them their fileOperation list to compare with ours for merging
@@ -325,12 +313,13 @@ public class Sender {
         //whenever you do these operations put a log event of merge successful
     }
 
-    public Map<String, Object> setMessage(String messageName){
+    public Map<String, Object>  setMessage(String messageName){
         Map<String, Object> messageContent = new HashMap<>();
         messageContent.put("messageName", messageName);
         messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
         messageContent.put("senderIp", FDProperties.getFDProperties().get("machineIp"));
         messageContent.put("senderPort", String.valueOf(FDProperties.getFDProperties().get("machinePort")));
+        messageContent.put("senderId", MembershipList.selfId);
         messageContent.put("msgId", FDProperties.generateRandomMessageId());
         return messageContent;
     }
@@ -354,6 +343,7 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
+            System.out.println("port:" + port);
             String[] resp = sendMessage(IpAddress, port, msg).split(",");
             status.put(new Leader.WorkerTasks("source", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
@@ -459,6 +449,62 @@ public class Sender {
                 i++;
             }
             Message msg = new Message("start_processing",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public String sendTuple(Tuple tuple, Member member, int receiverWorkerId, int senderWorkerId){
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("send_tuple");
+            messageContent.put("receiver_worker_id", receiverWorkerId);
+            messageContent.put("sender_worker_id", senderWorkerId);
+            messageContent.put("tuple_id", tuple.getId());
+            messageContent.put("tuple_key", String.valueOf(tuple.getKey()));
+            messageContent.put("tuple_value", String.valueOf(tuple.getValue()));
+            Message msg = new Message("send_tuple",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            return sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return "Unsuccessful";
+    }
+
+    public void sendAckToParent(String tupleId, Member member, int receiverWorkerId, int senderWorkerId) throws Exception {
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("send_tuple_ack");
+            messageContent.put("receiver_worker_id", receiverWorkerId);
+            messageContent.put("sender_worker_id", senderWorkerId);
+            messageContent.put("tuple_id", tupleId);
+            Message msg = new Message("send_tuple_ack",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void sendTupleToLeader(String result, Member leader, int senderWorkerId){
+        try {
+            String IpAddress = leader.getIpAddress();
+            int port = Integer.parseInt(leader.getPort());
+            Map<String, Object> messageContent = setMessage("send_tuple_leader");
+            messageContent.put("sender_worker_id", senderWorkerId);
+            messageContent.put("result", result);
+            Message msg = new Message("send_tuple_leader",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);

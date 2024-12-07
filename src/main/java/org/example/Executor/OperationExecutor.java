@@ -1,11 +1,13 @@
 package org.example.Executor;
 
+import org.example.Stream.Tuple;
 import org.example.entities.ExecutorProperties;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.List;
 
 public class OperationExecutor {
@@ -22,13 +24,17 @@ public class OperationExecutor {
     public static void set(String operationName) {
         //TODO read the config file to get the above details
 //        if(operationName.equals("op1")) {
-//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
-//            fullClassName = "Split";
-//            methodName = "split";
+//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\Rain-Storm\\Executables");
+//            fullClassName = "Filter";
+//            methodName = "filterOnColumn";
+////            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
+////            fullClassName = "Split";
+////            methodName = "split";
+////            methodName = "split";
 //        }else if(operationName.equals("op2")) {
-//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
-//            fullClassName = "WordCount";
-//            methodName = "processWords";
+//            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\Rain-Storm\\Executables");
+//            fullClassName = "ExtractColumns";
+//            methodName = "extract";
 //            saveMethodName = "saveState";
 //            loadMethodName = "loadState";
 //            savePath = "C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\";
@@ -81,9 +87,9 @@ public class OperationExecutor {
         }
     }
 
-    public static Object executeCode(List<String> inputList) throws Exception {
+    public static Object executeCode(Tuple tuple, String pattern) throws Exception {
 
-        Method method = wordCount.getMethod(methodName, List.class);
-        return method.invoke(instance, inputList);
+        Method method = wordCount.getMethod(methodName,String.class,String.class,String.class);
+        return method.invoke(instance, tuple.getKey(), tuple.getValue() ,pattern);
     }
 }

@@ -1,6 +1,7 @@
 package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.Stream.Tuple;
 import org.example.Stream.Worker;
 import org.example.Stream.WorkerManager;
 import org.example.entities.*;
@@ -125,18 +126,14 @@ public class Receiver extends Thread {
                             ObjectMapper objectMapper = new ObjectMapper();
                             out.println(objectMapper.writeValueAsString(map));
                             break;
-                            // TODO add code below to Receive control commands
-                        case "control":
-                            // TODO based on the control message: check what leader has given us a role
-                            // TODO based on the role take appropriate action
 
-                            // TODO if a node fails and you are a source then repeat the tuples
                             // Add code below to handle failures
                         case "set_source":
                             //Action a source needs to take when a Leader asks to perform a task
                             try {
                                 System.out.println("set_source");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> op1s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
@@ -145,7 +142,6 @@ public class Receiver extends Thread {
                                 String filename = String.valueOf(message.getMessageContent().get("filename"));
                                 Worker worker = new Worker("source", null, op1s, null, range, filename, null, null);
                                 int id = WorkerManager.initializeWorker(worker);
-//                                WorkerManager.startWorker(id);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
@@ -159,6 +155,7 @@ public class Receiver extends Thread {
                                 System.out.println("set_op1");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> sources = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("source_" + i)))));
@@ -167,9 +164,8 @@ public class Receiver extends Thread {
                                 for (int i = 0; i < tot_ops; i++) {
                                     op2s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
                                 }
-                                Worker worker = new Worker("set_op1", sources, null, op2s, null, null, null, opName);
+                                Worker worker = new Worker("op1", sources, null, op2s, null, null, null, opName);
                                 int id = WorkerManager.initializeWorker(worker);
-//                                WorkerManager.startWorker(id);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
@@ -182,14 +178,14 @@ public class Receiver extends Thread {
                                 System.out.println("set_op2");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> op1s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
                                 }
                                 String destFilename = String.valueOf(message.getMessageContent().get("filename"));
-                                Worker worker = new Worker("set_op2", null, op1s, null, null, null, destFilename, opName);
+                                Worker worker = new Worker("op2", null, op1s, null, null, null, destFilename, opName);
                                 int id = WorkerManager.initializeWorker(worker);
-//                                WorkerManager.startWorker(id);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
                             }catch (Exception e){
@@ -206,15 +202,48 @@ public class Receiver extends Thread {
                                     receiverPorts.add(String.valueOf(message.getMessageContent().get("receiver_port_" + i)));
                                 }
                                 WorkerManager.workers.get(workerId).setReceiverPorts(receiverPorts);
+                                System.out.println("Starting Worker:" + workerId);
                                 WorkerManager.startWorker(workerId);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
-                        case "BatchAck":
-                            String batchId = String.valueOf(message.getMessageContent().get("batchId"));
-                            //TODO ask saurabh
-
-                        case "/exit":
+                            break;
+                        case "send_tuple":
+                            try {
+                                int receiverWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("receiver_worker_id")));
+                                int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
+                                System.out.println("At line no 214: " + message.getMessageContent().get("tuple_id"));
+                                String tupleId = String.valueOf(message.getMessageContent().get("tuple_id"));
+                                String tupleKey = String.valueOf(message.getMessageContent().get("tuple_key"));
+                                String tupleValue = String.valueOf(message.getMessageContent().get("tuple_value"));
+                                Tuple tuple = new Tuple(tupleId, tupleKey, tupleValue);
+                                Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                WorkerManager.assignTuple(receiverWorkerId, senderWorkerId, member, tuple);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "send_tuple_ack":
+                            try {
+                                int receiverWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("receiver_worker_id")));
+                                int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
+                                Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                String tupleId = String.valueOf(message.getMessageContent().get("tuple_id"));
+                                WorkerManager.assignAck(receiverWorkerId, senderWorkerId, member, tupleId);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "send_tuple_leader":
+                            try {
+                                int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
+                                String result = String.valueOf(message.getMessageContent().get("result"));
+                                Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                System.out.println(member.getName() + " : " + senderWorkerId + " : " + result);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
                     }
                     // Send response back to client
                     System.out.println("Sent to client: " + response);

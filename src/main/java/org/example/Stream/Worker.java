@@ -7,15 +7,12 @@ import org.example.FileSystem.Sender;
 import org.example.entities.Member;
 import org.example.entities.MembershipList;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -37,15 +34,16 @@ public class Worker extends Thread {
     String operationName;
     //Worker ID, Receiver Port
     HashMap<Integer, Integer> receiverPorts = new HashMap<>();
+    HashMap<Integer, Integer> partMapOp1 = new HashMap<>();
+    HashMap<Integer, Integer> partMapOp2 = new HashMap<>();
     private Sender sender = new Sender();
-    private StreamSender streamSender = new StreamSender(this) ;
-    private StreamReceiver streamReceiver = new StreamReceiver(this);
 
-    int batchId = 0;
-    int tupleId = 0;
-    public  List<Batch> batchesSent = new CopyOnWriteArrayList<>();
-    public  List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
-    public  List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
+    public List<Batch> batchesSent = new CopyOnWriteArrayList<>();
+    public List<Batch> batchesToBeSent= new CopyOnWriteArrayList<>();
+    public List<Batch> batchesReceived = new CopyOnWriteArrayList<>();
+    public List<QueueData> tuplesSent = new CopyOnWriteArrayList<>();
+    public List<QueueData> tuplesToBeSent= new CopyOnWriteArrayList<>();
+    public List<QueueData> tuplesReceived = new CopyOnWriteArrayList<>();
     public List<String> logList = new CopyOnWriteArrayList<>();
 
     public int receiverPort;
@@ -76,6 +74,25 @@ public class Worker extends Thread {
                 this.receiverPorts.put(Integer.valueOf(s[2]), Integer.valueOf(s[3]));
             }
         }
+        Iterator<Map.Entry<Integer,Member>> iterator = op1s.entrySet().iterator();
+        int tempId = 0;
+        while (iterator.hasNext()) {
+            Map.Entry<Integer,Member> entry = iterator.next();
+            partMapOp1.put(tempId, entry.getKey());
+            tempId++;
+        }
+
+        iterator = op2s.entrySet().iterator();
+        tempId = 0;
+        while (iterator.hasNext()) {
+            Map.Entry<Integer,Member> entry = iterator.next();
+            partMapOp2.put(tempId, entry.getKey());
+            tempId++;
+        }
+
+        logList.add("Logs are for worker id : " + selfId);
+        saveLog(logList);
+        sendLog("CREATE");
     }
 
     //TODO Function : Source
@@ -89,170 +106,134 @@ public class Worker extends Thread {
             String[] range = ranges.split(",");
             int startLine = Integer.parseInt(range[0]);
             int endLine = Integer.parseInt(range[1]);
-            if(!iterator.hasNext()){
-                iterator = op1s.entrySet().iterator();
-            }
-            Map.Entry<Integer,Member>entry = iterator.next();
-            Batch batch = new Batch(String.valueOf(batchId), selfId, entry.getKey(), null);
-            try (Scanner scanner = new Scanner(new File(filename))) {
-                int currentLine = 0;
-                while (scanner.hasNextLine()) {
-                    currentLine++;
-                    String line = scanner.nextLine();
-                    if (currentLine >= startLine && currentLine <= endLine) {
-                        //TODO put the line in a form of tuple in the queue
-                        batch.getBatchData().add(new Tuple(String.valueOf(tupleId++), currentLine, line));
-                       // System.out.println(line);
-                    }
-                    if (currentLine > endLine) {
-                        break; // Stop reading once we've passed the desired range
-                    }
-                  if(batch.getBatchData().size() >= 10){
-                        batchesToBeSent.add(batch);
-                        if(!iterator.hasNext()){
-                          iterator = op1s.entrySet().iterator();
-                        }
-                        entry = iterator.next();
-                        batch = new Batch(String.valueOf(batchId), selfId, entry.getKey(),null);
+            Sender sender = new Sender();
+            try (BufferedReader reader = new BufferedReader(new FileReader(filename));
+                 ObjectOutputStream oos = new ObjectOutputStream(System.out)) {
+                String line;
+                int lineNumber = 0;
+                while ((line = reader.readLine()) != null) {
+                    lineNumber++;
+                    if (lineNumber >= startLine && lineNumber <= endLine) {
+                        //Send the line in a form of tuple to next node and create a Tuple object for each line
+                        String tupleKey = String.valueOf(lineNumber);
+                        Tuple<String,String> tuple = new Tuple<>(tupleKey,tupleKey, line);
+//                        Map.Entry<Integer, Member> entry = iterator.next();
+//                        int workerId = entry.getKey();
+//                        Member member = entry.getValue();
+                        int hash = generateHashInRange(tuple.getKey(), op1s.size());
+                        int workerId = partMapOp1.get(hash);
+                        Member member = op1s.get(workerId);
+                        //TODO get a successful or unsucessful message from the sender
+                        //if it is unsuccessful then it means the node has failed and remove it from the list
+                        sender.sendTuple(tuple, member, workerId, selfId);
+                        tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
+//                        System.out.println("Member : " + member.getName() + " " + workerId);
+//                        if(!iterator.hasNext()){
+//                            iterator = op1s.entrySet().iterator();
+//                        }
+//                        System.out.println(line);
                     }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }catch (Exception e){
             e.printStackTrace();
         }
-        //TODO Pass the tuple to the queue which will send it to next nodes.
-        //------------------------------
     }
 
     //TODO Function : Split
     public void op1() throws Exception {
-        //TODO based on num tasks create a connection
-        for(Batch currBatch: batchesReceived){
-            List<String> linesFromBatch = new CopyOnWriteArrayList<>();
-            String batchId = currBatch.getBatchId();
-            List<Tuple> batchData = currBatch.getBatchData();
-
-            linesFromBatch = batchData.stream()
-                    .map(Tuple::getValue)
-                    .filter(value -> value != null)
-                    .map(Object::toString)
-                    .collect(Collectors.toList());
-
-            OperationExecutor.set("op1");
-            OperationExecutor.loadInstance();
-            // Function to process data
-            List<String> result = (List<String>) OperationExecutor.executeCode(linesFromBatch);
-
-            int totalBatches = op2.size();
-            List<Batch>op2Batches = new CopyOnWriteArrayList<>();
-
-            int count = 1;
-            for(Map.Entry<Integer,Member>entry : op2s.entrySet()){
-                op2Batches.add(new Batch(batchId+"_"+count++, selfId, entry.getKey() , new CopyOnWriteArrayList<>()));
+        try {
+            while (true) {
+                QueueData queueData = WorkerManager.consumerQueues.get(selfId).take();
+                if(queueData.type.equals("tuple")) {
+                    //TODO get the code processed from the executor
+                    Map<String,String> result = (Map<String,String>)
+                            OperationExecutor.executeCode(
+                                    queueData.tuple,
+                                    "Streetname");
+                    List<Tuple> tupleResult = new ArrayList<>();
+                    Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
+                    int count = 0;
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, String> entry = iterator.next();
+                        new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
+                        count++;
+                    }
+                    String tupleKey = "1";
+                    System.out.println("Got Tuple id : " + queueData.tupleId);
+                    Tuple<String, String> tuple = new Tuple<>(tupleKey, "1", "afdnk");
+                    int hash = generateHashInRange(tuple.getKey(), op2s.size());
+                    int workerId = partMapOp2.get(hash);
+                    Member member = op2s.get(workerId);
+                    //TODO get a successful or unsucessful message from the sender
+                    //if it is unsuccessful then it means the node has failed, so just put a log that unable to send to __ worker
+                    String response = sender.sendTuple(tuple, member, workerId, selfId);
+                    tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
+                    logList.add(queueData.tuple.getId() + "_Processed");
+                    //Save and send the logs to HyDFS
+                    saveLog(logList);
+                    logList.clear();
+                    sendLog("APPEND");
+                    System.out.println("Member : " + member.getName() + " " + workerId);
+                    sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                    logList.add(queueData.tuple.getId() + "_Ack Sent");
+                }else{
+                    tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
+                    System.out.println("Received Ack");
+                }
             }
-            for(String word:result){
-                int machine = getMachine(word,op2Batches.size());
-                Tuple newTuple = new Tuple(UUID.randomUUID().toString(), word, 1);
-                op2Batches.get(machine).getBatchData().add(newTuple);
-            }
-
-            batchesToBeSent.addAll(op2Batches);
-            String parentIp = getAckReceiverIP(currBatch.getSenderWorkerId());
-            sender.sendAckToParent(parentIp,receiverPorts.get(currBatch.getSenderWorkerId()),currBatch.getSenderWorkerId(), currBatch.getBatchId());
-            logList.add(currBatch.getBatchId()+"_Ack Sent");
-            logList.add(currBatch.getBatchId()+"_Processed");
-            batchesReceived.remove(currBatch);
-
+        }catch (Exception e){
+            System.out.println("Worker failed while processing OP1 : " + selfId);
+            e.printStackTrace();
         }
-    }
-
-    private String getAckReceiverIP(int parentMachineId){
-        String receiverIp = "";
-        if(op1s.containsKey(parentMachineId)){
-            Member member = op1s.get(parentMachineId);
-            receiverIp = member.getIpAddress();
-        }else if(sources.containsKey(parentMachineId)){
-            Member member = sources.get(parentMachineId);
-            receiverIp = member.getIpAddress();
-        }
-        return receiverIp;
-    }
-
-    public static int getMachine(String word, int n) {
-        char firstChar = Character.toLowerCase(word.charAt(0));
-        int machine = (firstChar - 'a') * n / 26;
-        return machine;
     }
 
     //TODO Function : Count
     public void op2() throws Exception {
-        List<String> wordsList = new CopyOnWriteArrayList<>();
-        for(Batch currBatch: batchesReceived){
-            List<Tuple> batchData = currBatch.getBatchData();
-            for(Tuple currTuple: batchData){
-                wordsList.add(String.valueOf(currTuple.getKey()));
+        try {
+            while (true) {
+                QueueData queueData = WorkerManager.consumerQueues.get(selfId).take();
+                if(queueData.type.equals("tuple")) {
+                    System.out.println("GOt Tuple id : " + queueData.tupleId);
+                    //TODO get the code processed from the executor
+                    String tupleKey = "1";
+                    Tuple<String, String> tuple = new Tuple<>(tupleKey, "1", "fad");
+                    logList.add(queueData.tuple.getId() + "_Ack Sent");
+                    logList.add(queueData.tuple.getId() + "_Processed");
+                    //Save and send the logs to HyDFS
+                    saveLog(logList);
+                    sendLog("APPEND");
+                    logList.clear();
+//                    //Send the Data to HyDFS
+//                    sendData();
+                    //send data to Introducer
+                    System.out.println("Sending data to into");
+                    sender.sendTupleToLeader(String.valueOf(tuple.getValue()), WorkerManager.leader, selfId);
+                    sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                }else{
+                    tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
+                    System.out.println("Received Ack");
+                }
             }
-            String parentIp = getAckReceiverIP(currBatch.getSenderWorkerId());
-            sender.sendAckToParent(parentIp,receiverPorts.get(currBatch.getSenderWorkerId()),currBatch.getSenderWorkerId(), currBatch.getBatchId());
-            batchesReceived.remove(currBatch);
+        }catch (Exception e){
+            System.out.println("Worker failed while processing OP1 : " + selfId);
+            e.printStackTrace();
         }
-
-        OperationExecutor.set("op2");
-        OperationExecutor.loadInstance();
-        OperationExecutor.loadCode();
-        Map<String, Long> result = (Map<String, Long>) OperationExecutor.executeCode(wordsList);
-        //Save and send the logs to HyDFS
-        saveLog(logList);
-        sendLog();
-        //Send the Data to HyDFS
-        sendData();
-    }
-
-    public void sendBatchData(){
-
-    }
-
-    public void receiveBatchData(){
-
-    }
-
-    public void processop1(List<Tuple>l1){
-
     }
 
     public void processAck(String batchId){
         batchesSent.removeIf(batch -> batch.getBatchId().equals(batchId));
     }
 
-    private void processBatches(int OperationStage) throws Exception {
-            for(Batch currBatch : batchesReceived){
-                //TODO perform some operation
-                if(OperationStage==1){
-                    //TODO perform some operation & build new tuples data
-                    List<Tuple> tuplesForNextStage = new CopyOnWriteArrayList<>();
-                    //TODO decide batch id currentl giving random
-                    Batch nextStageBatch = new Batch("1", selfId,tuplesForNextStage);
-                    batchesToBeSent.add(nextStageBatch);
-                    //TODO decide how we are going to send batches , from here or from run of sender
-
-                } else if(OperationStage == 2){
-                    //TODO perform operstions and write to Console and HYDFS
-
-
-
-                    //sender.sendAckToParent(currBatch.getSenderWorkerId(),currBatch.getBatchId());
-                    //TODO Need to write sendack & receive ack , but where ?
-                }
-
-            }
-    }
-
     public int getReceiverPort() {
         return receiverPort;
     }
+
     public String saveLog(List<String> logs) {
         // Create filename in the format "WorkerID_type.log"
-        String logFileName = selfId + "_" + type +"_log.txt";
+        String logFileName = "HyDFS\\" + selfId + "_" + type +"_log.txt";
 
         try {
             // Create a File object with the filename
@@ -275,21 +256,35 @@ public class Worker extends Thread {
         }
     }
 
-    public void sendLog(){
-        String FileName = selfId + "_" + type +"_log.txt";
+    public void sendLog(String filetype){
+        String FileName = "HyDFS\\" + selfId + "_" + type +"_log.txt";
         String HyDFSFileName = selfId + "_" + type +"_log.txt";
         try {
-            int fileNameHash = HashFunction.hash(HyDFSFileName);
-            Member member = MembershipList.getMemberById(fileNameHash);
-            FileSender fileSender = new FileSender(
-                    FileName,
-                    HyDFSFileName,
-                    member.getIpAddress(),
-                    Integer.parseInt(member.getPort()),
-                    "UPLOAD",
-                    "APPEND",
-                    "");
-            fileSender.run();
+            if(filetype.equals("APPEND")) {
+                int fileNameHash = HashFunction.hash(HyDFSFileName);
+                Member member = MembershipList.getMemberById(fileNameHash);
+                FileSender fileSender = new FileSender(
+                        FileName,
+                        HyDFSFileName,
+                        member.getIpAddress(),
+                        Integer.parseInt(member.getPort()),
+                        "UPLOAD",
+                        "APPEND",
+                        "");
+                fileSender.run();
+            }else{
+                int fileNameHash = HashFunction.hash(HyDFSFileName);
+                Member member = MembershipList.getMemberById(fileNameHash);
+                FileSender fileSender = new FileSender(
+                        FileName,
+                        HyDFSFileName,
+                        member.getIpAddress(),
+                        Integer.parseInt(member.getPort()),
+                        "UPLOAD",
+                        "CREATE",
+                        "");
+                fileSender.run();
+            }
         } catch (RuntimeException e) {
             System.out.println("File Append was unsuccessful");
         }
@@ -315,19 +310,30 @@ public class Worker extends Thread {
         }
     }
 
+    public int generateHashInRange(String input, int range) {
+        if (range <= 0) {
+            throw new IllegalArgumentException("Range must be a positive number.");
+        }
+        int hash = input.hashCode();
+        hash = Math.abs(hash);
+        return hash % range;
+    }
+
     public void setReceiverPort(int receiverPort) {
         this.receiverPort = receiverPort;
     }
     //TODO Function : run function for the thread
     public void run(){
-        streamReceiver.start();
-        streamSender.start();
+//        streamReceiver.start();
+//        streamSender.start();
         switch(type) {
             case "source":
+                System.out.println("starting source");
                 source();
                 break;
             case "op1":
                 try {
+                    System.out.println("starting op1");
                     op1();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -335,6 +341,7 @@ public class Worker extends Thread {
                 break;
             case "op2":
                 try {
+                    System.out.println("starting op2");
                     op2();
                 } catch (Exception e) {
                     e.printStackTrace();

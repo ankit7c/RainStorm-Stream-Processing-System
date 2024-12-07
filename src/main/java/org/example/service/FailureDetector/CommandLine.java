@@ -181,7 +181,7 @@ public class CommandLine implements Runnable {
                             break;
 
                         // Commands for Rainstorm
-                        // rainstorm op1_exe op2_exe input/business_1.txt hydfs_dest_filename 1
+                        // rainstorm op1_exe op2_exe input/TrafficSigns_100.csv hydfs_dest_filename 1
                         case "rainstorm":
                             String[] ops = Arrays.copyOfRange(list, 1, 3);
                             String filename = list[3];

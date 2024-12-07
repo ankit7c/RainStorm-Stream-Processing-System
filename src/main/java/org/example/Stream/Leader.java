@@ -1,14 +1,12 @@
 package org.example.Stream;
 
+import org.example.Executor.Test;
 import org.example.FileSystem.HelperFunctions;
 import org.example.FileSystem.Sender;
-import org.example.entities.FDProperties;
 import org.example.entities.Member;
 import org.example.entities.MembershipList;
-import org.example.entities.Message;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -19,6 +17,7 @@ public class Leader {
         Member member;
         Integer receiverPort;
         Integer workerId;
+        ConcurrentSkipListMap<Integer, Member> memberslist;
         public WorkerTasks(String type, Member member, int workerId, Integer receiverPort) {
             this.type = type;
             this.member = member;
@@ -35,12 +34,19 @@ public class Leader {
     Sender sender = new Sender();
     String currFilename;
     String currDestFilename;
+    String opertion1Name;
+    String opertion2Name;
 
     //Add functions to send  control commands to worker nodes
 
     //Function to determine which nodes are active and assign tasks to each of them
     public void initializeNodes(String filename,
                                 String destFilename, int num_tasks, String[] ops){
+        try{
+            Test.testExe();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         ConcurrentSkipListMap<Integer, Member> memberslist = MembershipList.memberslist;
         //Remove itself
         memberslist.remove(MembershipList.selfId);
@@ -54,7 +60,7 @@ public class Leader {
                 String range = ((i == num_tasks-1) ? (start + "," + line) : (start + "," + (start + (line / num_tasks))));
                 start = start + (line / num_tasks);
                 ranges.add(range);
-                System.out.println("RAnge: " + range);
+                System.out.println("Range: " + range);
                 System.out.println("id : " + ids.get(pointer%size));
                 sources.add(memberslist.get(ids.get(pointer%size)));
                 pointer++;
@@ -70,7 +76,7 @@ public class Leader {
                 pointer++;
             }
             //Call each node and assign the role
-            Map<Leader.WorkerTasks, String> result = sender.setRoles(sources, op1, op2, filename, ranges, destFilename, ops);
+            Map<WorkerTasks, String> result = sender.setRoles(sources, op1, op2, filename, ranges, destFilename, ops);
             //Check if each result is pass, if not then pick new node and ask it to handle the task
             result.forEach(((workerTasks, s) -> {
 //                if(Integer.parseInt(s) == -1){
@@ -121,7 +127,11 @@ public class Leader {
             memberslist.forEach((k,v) -> ids.add(k));
             int size = memberslist.size();
             pointer++;
-            Member member = memberslist.get(pointer%memberslist.size());
+            Member member = failMember;
+            //If we choose the failed Member again
+            while(member.getId() == failMember.getId()){
+                member = memberslist.get(pointer%memberslist.size());
+            }
             //TODO take appropriate action based on type of failed node
             switch (type){
                 case "source":
@@ -135,11 +145,11 @@ public class Leader {
                     //TODO when they join the system the  previous nodes should track the acks they sent and sent from appropriate location
                     // we will also need to check the HyDFS logs to see the acks processed.
                     //TODO Send a node a message that its next node has failed and it needs to change its next machine.
-//                    sender.setOp1(member, sources, op2);
+                    sender.setOp1(member, sources, op2, opertion1Name);
                     break;
                 case "op2":
                     //TODO check Count node logs and hydfs data file to see where it failed and ask split to play from that specific point
-//                    sender.setOp2(member, op1, currDestFilename);
+                    sender.setOp2(member, op1, currDestFilename, opertion2Name);
                     break;
                 default:
                     System.out.println("Invalid type, Not able to found the failed node in the current working nodes list");
