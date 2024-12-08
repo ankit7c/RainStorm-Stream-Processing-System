@@ -1,9 +1,6 @@
 package org.example;
 
-import org.example.FileSystem.Convergence;
-import org.example.FileSystem.FileReceiver;
-import org.example.FileSystem.HashFunction;
-import org.example.FileSystem.Receiver;
+import org.example.FileSystem.*;
 import org.example.entities.FDProperties;
 import org.example.entities.LRUFileCache;
 import org.example.entities.Member;
@@ -66,6 +63,7 @@ public class Server {
                 Member.getLocalDateTime(),
                 String.valueOf(FDProperties.getFDProperties().get("incarnationNo"))));
         System.out.println("Start Receiver");
+        deleteHyDFSFiles.deleteFiles();
         //Set Max Size of cache given in the properties
         LRUFileCache.FILE_CACHE.addMaxSize();
         Receiver receiver = new Receiver();

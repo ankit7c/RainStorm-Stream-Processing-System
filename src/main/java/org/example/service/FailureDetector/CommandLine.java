@@ -30,7 +30,6 @@ public class CommandLine implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(CommandLine.class);
     private ConcurrentHashMap<String, Integer> map;
     private String threadName;
-    private Leader leader = new Leader();
 
     @Override
     public void run() {
@@ -181,13 +180,21 @@ public class CommandLine implements Runnable {
                             break;
 
                         // Commands for Rainstorm
-                        // rainstorm Filter ExtractColumns input/TrafficSigns_100.csv hydfs_dest_filename 1
+                        // rainstorm Filter ExtractColumns input/TrafficSigns_100.csv hydfs_dest_filename.txt 1 "Streetname" "Streetname"
+                        // rainstorm FilterOnColumn Count input/TrafficSigns_1000.csv countCat.txt 1 "Punched_Telespar" "Punched_Telespar"
+                        // rainstorm FilterOnColumn Count input/TrafficSigns_1000.csv countCat.txt 1 "Power_Pole" "Power_Pole"
+                        // rainstorm Filter ExtractColumns input/Traffic_Signs.csv hydfs_dest_filename.txt 1
                         case "rainstorm":
                             String[] ops = Arrays.copyOfRange(list, 1, 3);
                             String filename = list[3];
                             String dest_filename = list[4];
                             String num_tasks = list[5];
-                            leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks), ops);
+                            String pattern1 = list[6].replace("\"", "");
+                            pattern1 = pattern1.replace("_", " ");
+                            String pattern2 = list[7].replace("\"", "");
+                            pattern2 = pattern2.replace("_", " ");
+                            System.out.println(pattern2 + pattern1);
+                            Leader.initializeNodes(filename,dest_filename, Integer.parseInt(num_tasks), ops, pattern1, pattern2);
                             break;
 
                         default:

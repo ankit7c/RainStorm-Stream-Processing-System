@@ -1,6 +1,7 @@
 package org.example.FileSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.Stream.Leader;
 import org.example.Stream.Tuple;
 import org.example.Stream.Worker;
 import org.example.Stream.WorkerManager;
@@ -140,7 +141,7 @@ public class Receiver extends Thread {
                                 }
                                 String range = String.valueOf(message.getMessageContent().get("range"));
                                 String filename = String.valueOf(message.getMessageContent().get("filename"));
-                                Worker worker = new Worker("source", null, op1s, null, range, filename, null, null);
+                                Worker worker = new Worker("source", null, op1s, null, range, filename, null, null, "");
                                 int id = WorkerManager.initializeWorker(worker);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
@@ -155,6 +156,8 @@ public class Receiver extends Thread {
                                 System.out.println("set_op1");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                String pattern = String.valueOf(message.getMessageContent().get("pattern"));
+                                System.out.println("Pattern : " + pattern);
                                 WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> sources = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
@@ -164,7 +167,7 @@ public class Receiver extends Thread {
                                 for (int i = 0; i < tot_ops; i++) {
                                     op2s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
                                 }
-                                Worker worker = new Worker("op1", sources, null, op2s, null, null, null, opName);
+                                Worker worker = new Worker("op1", sources, null, op2s, null, null, null, opName, pattern);
                                 int id = WorkerManager.initializeWorker(worker);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
@@ -178,13 +181,15 @@ public class Receiver extends Thread {
                                 System.out.println("set_op2");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                String pattern = String.valueOf(message.getMessageContent().get("pattern"));
+                                System.out.println("Pattern : " + pattern);
                                 WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> op1s = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
                                     op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
                                 }
-                                String destFilename = String.valueOf(message.getMessageContent().get("filename"));
-                                Worker worker = new Worker("op2", null, op1s, null, null, null, destFilename, opName);
+                                String destFilename = String.valueOf(message.getMessageContent().get("destFilename"));
+                                Worker worker = new Worker("op2", null, op1s, null, null, null, destFilename, opName, pattern);
                                 int id = WorkerManager.initializeWorker(worker);
                                 //Return the id to leader
                                 out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
@@ -213,12 +218,13 @@ public class Receiver extends Thread {
                                 int receiverWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("receiver_worker_id")));
                                 int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
                                 System.out.println("At line no 214: " + message.getMessageContent().get("tuple_id"));
+                                String tupleType = String.valueOf(message.getMessageContent().get("type"));
                                 String tupleId = String.valueOf(message.getMessageContent().get("tuple_id"));
                                 String tupleKey = String.valueOf(message.getMessageContent().get("tuple_key"));
                                 String tupleValue = String.valueOf(message.getMessageContent().get("tuple_value"));
                                 Tuple tuple = new Tuple(tupleId, tupleKey, tupleValue);
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
-                                WorkerManager.assignTuple(receiverWorkerId, senderWorkerId, member, tuple);
+                                WorkerManager.assignTuple(receiverWorkerId, senderWorkerId, member, tuple, tupleType);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -240,6 +246,24 @@ public class Receiver extends Thread {
                                 String result = String.valueOf(message.getMessageContent().get("result"));
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 System.out.println(member.getName() + " : " + senderWorkerId + " : " + result);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "send_eof_leader":
+                            try {
+                                int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
+                                Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                Leader.processEOFs(senderWorkerId);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "kill_workers":
+                            try {
+                                int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
+                                Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                WorkerManager.killWorker(workerId);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }

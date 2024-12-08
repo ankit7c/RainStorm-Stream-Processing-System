@@ -74,7 +74,7 @@ public class FileReceiver extends Thread {
                     boolean isTempFilePresent = false;
                     if(fileType.equals("UPLOAD")) {
                         if (fileOp.equals("CREATE")) {
-                            fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                            fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
                         } else if (fileOp.equals("APPEND")) {
                             fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.APPEND, StandardOpenOption.WRITE);
                             tempFileChannel = FileChannel.open(Paths.get(localFilePath + "temp" + tempCounter), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -85,7 +85,7 @@ public class FileReceiver extends Thread {
                         fileChannel = FileChannel.open(Paths.get(localFilePath + localFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                     }else if(fileType.equals("REPLICA")) {
                         if (fileOp.equals("CREATE")) {
-                            fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                            fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
                         } else if (fileOp.equals("APPEND")) {
                             fileChannel = FileChannel.open(Paths.get(HyDFSFilePath + hyDFSFileName), StandardOpenOption.APPEND, StandardOpenOption.WRITE);
                         }

@@ -7,34 +7,6 @@ import java.util.stream.Collectors;
 
 public class Count implements Serializable {
 
-    public class Tuple<K, V>  implements Serializable {
-        private static final long serialVersionUID = 1L;
-        private String id;
-        private K key;
-        private V value;
-
-        public Tuple(String id, K key, V value) {
-            this.id = id;
-            this.key = key;
-            this.value = value;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public K getKey() {
-            return key;
-        }
-
-        public V getValue() {
-            return value;
-        }
-
-
-    }
-
-
     private static final Count INSTANCE = new Count();
     private Map<String, Integer> cumulativeCount = new HashMap<>();
 
@@ -56,17 +28,12 @@ public class Count implements Serializable {
         return INSTANCE;
     }
 
-    public List<Tuple> countCategory(Tuple obj,String pattern) throws IOException {
-        List<Tuple> resultList = new ArrayList<>();
+    public Map<String,String> countCategory(String key, String value, String pattern) throws IOException {
+       Map<String,String> resultList = new HashMap<>();
         try {
-            Tuple<String, String> tuple = null;
-            if (obj instanceof Tuple<?, ?>) {
-                tuple = (Tuple) obj;
-                String word = tuple.getKey();
-                cumulativeCount.put(word, cumulativeCount.getOrDefault(word,0) + 1);
-                Tuple outputTuple = new Tuple(tuple.getId()+"_2", word, cumulativeCount.get(word));
-                resultList.add(outputTuple);
-            }
+            String word = key;
+            cumulativeCount.put(word, cumulativeCount.getOrDefault(word,0) + 1);
+            resultList.put(word, String.valueOf(cumulativeCount.get(word)));
         }catch (Exception e){
             e.printStackTrace();
         }

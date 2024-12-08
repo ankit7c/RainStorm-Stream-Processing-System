@@ -17,7 +17,6 @@ public class WorkerManager {
     static int currReceiverPort = Integer.parseInt(String.valueOf(FDProperties.getFDProperties().get("machinePort"))) + 20;
 
     public static final Map<Integer, BlockingQueue<QueueData>> consumerQueues = new ConcurrentHashMap<>();
-    public static final BlockingQueue<ArrayList<QueueData>> producerQueue = new LinkedBlockingQueue<>();
 
     //Function to initialize Worker
     public static int initializeWorker(Worker worker) {
@@ -32,11 +31,9 @@ public class WorkerManager {
         return workerId;
     }
 
-    public static void startWorker(int id) {
-        //TODO start the Stream Receiver from here
-        Worker worker = workers.get(id);
+    public static void startWorker(int workerid) {
+        Worker worker = workers.get(workerid);
         try{
-//            Thread.sleep(1000);
             worker.start();
         }
         catch(Exception e){
@@ -44,10 +41,20 @@ public class WorkerManager {
         }
     }
 
-    public static void assignTuple(int workerId, int senderId, Member member, Tuple tuple) {
+    public static void killWorker(int workerid) {
+        Worker worker = workers.get(workerid);
+        System.out.println("Worker " + workerid + " killed");
+        worker.stopWorker();
+        System.out.println("Removing worker " + workerid);
+        workers.remove(workerid);
+        consumerQueues.remove(workerid);
+
+    }
+
+    public static void assignTuple(int workerId, int senderId, Member member, Tuple tuple, String tupleType) {
         try {
             System.out.println("Assigning tuple : " + workerId);
-            consumerQueues.get(workerId).put(new QueueData(senderId, workerId, member, tuple, "tuple", tuple.getId()));
+            consumerQueues.get(workerId).put(new QueueData(senderId, workerId, member, tuple, tupleType, tuple.getId()));
         }catch (Exception e){
             e.printStackTrace();
         }

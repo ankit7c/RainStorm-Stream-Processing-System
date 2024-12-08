@@ -18,14 +18,15 @@ public class OperationExecutor {
     public static  String loadMethodName;
     public static  String savePath;
     public static  String saveFileName;
+    public static Boolean stateful;
     public static Object instance;
     public static Class<?> wordCount;
 
-    public static void set(String operationName) {
+    public static void set(String operationName, int selfId, String type) {
         //TODO read the config file to get the above details
 //        if(operationName.equals("op1")) {
 //            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\Rain-Storm\\Executables");
-//            fullClassName = "Filter";
+//            fullClassName = "FilterOnColumn";
 //            methodName = "filterOnColumn";
 ////            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4");
 ////            fullClassName = "Split";
@@ -33,12 +34,12 @@ public class OperationExecutor {
 ////            methodName = "split";
 //        }else if(operationName.equals("op2")) {
 //            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\Rain-Storm\\Executables");
-//            fullClassName = "ExtractColumns";
-//            methodName = "extract";
+//            fullClassName = "Count";
+//            methodName = "countCategory";
 //            saveMethodName = "saveState";
 //            loadMethodName = "loadState";
 //            savePath = "C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\";
-//            saveFileName = "word_count.ser";
+//            saveFileName = "count.ser";
 //        }
 
         //REad the app.properties and load the class
@@ -50,14 +51,18 @@ public class OperationExecutor {
                 if (className.equals(operationName)) {
                     fullClassName = className;
                     methodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
-                    if (Boolean.parseBoolean(String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i)))) {
-                        saveMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("methodName" + i));
+                    stateful = Boolean.parseBoolean(String.valueOf(ExecutorProperties.getexeProperties().get("stateful" + i)));
+                    if (Boolean.parseBoolean(String.valueOf(ExecutorProperties.getexeProperties().get("stateful" + i)))) {
+                        saveMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("saveMethodName" + i));
                         savePath = String.valueOf(ExecutorProperties.getexeProperties().get("savePath" + i));
                         saveFileName = String.valueOf(ExecutorProperties.getexeProperties().get("saveFileName" + i));
                         loadMethodName = String.valueOf(ExecutorProperties.getexeProperties().get("loadMethodName" + i));
                     }
                 }
             }
+            System.out.println("stateful name : " + stateful);
+            System.out.println("saveMethond name : " + saveMethodName);
+            saveFileName = "local\\" + selfId + "_" + type +"_data.ser";
         }catch (Exception e){
             System.out.println("Error while searching for executable");
             e.printStackTrace();
@@ -75,15 +80,19 @@ public class OperationExecutor {
     }
 
     public static void saveCode() throws Exception{
-        Method loadStateMethod = wordCount.getMethod(saveMethodName, String.class);
-        loadStateMethod.invoke(instance, savePath+saveFileName);
+        if(stateful){
+            Method loadStateMethod = wordCount.getMethod(saveMethodName, String.class);
+            loadStateMethod.invoke(instance, savePath+saveFileName);
+        }
     }
 
     public static void loadCode() throws Exception {
-        File dir = new File(savePath+saveFileName);
-        if (dir.exists()) {
-            Method loadStateMethod = wordCount.getMethod(loadMethodName, String.class);
-            loadStateMethod.invoke(instance, savePath+saveFileName);
+        if(stateful) {
+            File dir = new File(savePath + saveFileName);
+            if (dir.exists()) {
+                Method loadStateMethod = wordCount.getMethod(loadMethodName, String.class);
+                loadStateMethod.invoke(instance, savePath + saveFileName);
+            }
         }
     }
 

@@ -354,7 +354,7 @@ public class Sender {
     }
 
     // Use below function when a split or OP1 performing node fails
-    public Map<Leader.WorkerTasks, String> setOp1(Member member, List<Member> source, List<Member> op2, String op1_name) {
+    public Map<Leader.WorkerTasks, String> setOp1(Member member, List<Member> source, List<Member> op2, String op1_name, String pattern) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             String IpAddress = member.getIpAddress();
@@ -362,6 +362,7 @@ public class Sender {
             Map<String, Object> messageContent = setMessage("set_op1");
             messageContent.put("num_tasks", op2.size());
             messageContent.put("operation_name", op1_name);
+            messageContent.put("pattern", pattern);
             int i=0;
             for (Member value : source) {
                 messageContent.put("source_" + i, value.getId());
@@ -387,7 +388,7 @@ public class Sender {
     }
 
     // Use below function when a count or OP2 performing node fails
-    public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename, String op2_name) {
+    public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename, String op2_name, String pattern) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
         try {
             System.out.println("op2");
@@ -397,6 +398,7 @@ public class Sender {
             messageContent.put("destFilename", destFilename);
             messageContent.put("num_tasks", op1.size());
             messageContent.put("operation_name", op2_name);
+            messageContent.put("pattern", pattern);
             int i=0;
             for (Member value : op1) {
                 messageContent.put("op1_" + i, value.getId());
@@ -417,18 +419,19 @@ public class Sender {
 
     public Map<Leader.WorkerTasks, String> setRoles(List<Member> sources, List<Member> op1,
                                         List<Member> op2, String filename, List<String> ranges,
-                                        String destFilename, String[] ops){
+                                        String destFilename, String[] ops, String pattern1, String pattern2){
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
+        System.out.println("Pattern : " + pattern1 + pattern2);
         try{
             for(int i = 0; i<sources.size(); i++){
                 Member member = sources.get(i);
                 status.putAll(setSource(member, op1, filename, ranges.get(i)));
             }
             for (Member member : op1) {
-                status.putAll(setOp1(member, sources, op2, ops[0]));
+                status.putAll(setOp1(member, sources, op2, ops[0], pattern1));
             }
             for (Member member : op2) {
-                status.putAll(setOp2(member, op1, destFilename, ops[1]));
+                status.putAll(setOp2(member, op1, destFilename, ops[1], pattern2));
             }
         }catch (Exception e) {
             e.printStackTrace();
@@ -458,13 +461,14 @@ public class Sender {
         }
     }
 
-    public String sendTuple(Tuple tuple, Member member, int receiverWorkerId, int senderWorkerId){
+    public String sendTuple(Tuple tuple, String type, Member member, int receiverWorkerId, int senderWorkerId){
         try {
             String IpAddress = member.getIpAddress();
             int port = Integer.parseInt(member.getPort());
             Map<String, Object> messageContent = setMessage("send_tuple");
             messageContent.put("receiver_worker_id", receiverWorkerId);
             messageContent.put("sender_worker_id", senderWorkerId);
+            messageContent.put("type", type);
             messageContent.put("tuple_id", tuple.getId());
             messageContent.put("tuple_key", String.valueOf(tuple.getKey()));
             messageContent.put("tuple_value", String.valueOf(tuple.getValue()));
@@ -505,6 +509,39 @@ public class Sender {
             messageContent.put("sender_worker_id", senderWorkerId);
             messageContent.put("result", result);
             Message msg = new Message("send_tuple_leader",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void sendEOFToLeader(Member leader, int senderWorkerId){
+        try {
+            String IpAddress = leader.getIpAddress();
+            int port = Integer.parseInt(leader.getPort());
+            Map<String, Object> messageContent = setMessage("send_eof_leader");
+            messageContent.put("sender_worker_id", senderWorkerId);
+            Message msg = new Message("send_eof_leader",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void killWorkers(Member member, int workerId){
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            System.out.println("Member Name :" + member.getName() + ":" + workerId);
+            Map<String, Object> messageContent = setMessage("kill_workers");
+            messageContent.put("worker_id", workerId);
+            Message msg = new Message("kill_workers",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);

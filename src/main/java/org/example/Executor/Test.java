@@ -21,7 +21,7 @@ public class Test {
                 String tupleKey = inputFilePath + "_" + lineNumber;
                 Tuple<String, String> tuple = new Tuple<>(tupleKey, tupleKey, line);
 
-                OperationExecutor.set("Filter");
+//                OperationExecutor.set("Filter");
                 OperationExecutor.loadInstance();
 
                 Map<String,String> result = (Map<String,String>)
@@ -33,7 +33,7 @@ public class Test {
                     result3.add(new Tuple("id",k,v));
                 });
 
-                OperationExecutor.set("ExtractColumns");
+//                OperationExecutor.set("ExtractColumns");
                 OperationExecutor.loadInstance();
                 for(Tuple currTuple: result3){
                     Map<String,String> result4 = (Map<String,String>)
@@ -104,58 +104,62 @@ public class Test {
                 String line = scanner.nextLine();
                 String tupleKey = inputFilePath + "_" + lineNumber;
                 Tuple<String, String> tuple = new Tuple<>(tupleKey, tupleKey, line);
-                OperationExecutor.set("op1");
-                //Code to execute Test 2
-
-//                List<Tuple> result = (List<Tuple>)
-//                        SplitExecutor.executePrecompiledCode(classDir,
-//                                "org.example.exe.FilterOnColumn",  // Full package path
-//                                "filterOnColumn",
-//                                tuple,
-//                                "Unpunched Telespar"
-//                        );
-//
-//                for(Tuple currTuple: result){
-//                    List<Tuple> result2 = (List<Tuple>)
-//                            SplitExecutor.executePrecompiledCode(classDir,
-//                                    "org.example.exe.Count",  // Full package path
-//                                    "countCategory",
-//                                    currTuple,
-//                                    "Unpunched Telespar"
-//                            );
-//                    for(Tuple tup:result2){
-//                        count++;
-//                        System.out.println(tup.getKey()+"   :   "+tup.getValue());
-//                    }
-//                }
-
-
-                OperationExecutor.set("op1");
+//                OperationExecutor.set("op1");
                 OperationExecutor.loadInstance();
+                //Code to execute Test 2
 
                 Map<String,String> result = (Map<String,String>)
                         OperationExecutor.executeCode(
                                 tuple,
-                                "Streetname");
-                List<Tuple> result3 = new ArrayList<>();
+                                "Unpunched Telespar"
+                        );
+                List<Tuple> result2 = new ArrayList<>();
                 result.forEach((k,v)->{
-                    result3.add(new Tuple("id",k,v));
-//                    System.out.println(k + "\t" + v);
+                    result2.add(new Tuple("id",k,v));
+                    System.out.println(k + "\t" + v);
                 });
-
-                OperationExecutor.set("op2");
+//                OperationExecutor.set("op2");
                 OperationExecutor.loadInstance();
-                for(Tuple currTuple: result3){
-                    Map<String,String> result4 = (Map<String,String>)
+                OperationExecutor.loadCode();
+                for(Tuple currTuple: result2){
+                    Map<String,String> result3 = (Map<String,String>)
                             OperationExecutor.executeCode(
                                     currTuple,
-                                    "Streetname"
+                                    "Unpunched Telespar"
                             );
-                    count++;
-                    result4.forEach((k,v)->{
-                        System.out.println(k + "\t" + v);
+                    result3.forEach((k,v)->{
+                    System.out.println(k + "\t" + v);
                     });
                 }
+                OperationExecutor.saveCode();
+
+
+//                OperationExecutor.set("op1");
+//                OperationExecutor.loadInstance();
+//
+//                Map<String,String> result = (Map<String,String>)
+//                        OperationExecutor.executeCode(
+//                                tuple,
+//                                "Streetname");
+//                List<Tuple> result3 = new ArrayList<>();
+//                result.forEach((k,v)->{
+//                    result3.add(new Tuple("id",k,v));
+////                    System.out.println(k + "\t" + v);
+//                });
+//
+//                OperationExecutor.set("op2");
+//                OperationExecutor.loadInstance();
+//                for(Tuple currTuple: result3){
+//                    Map<String,String> result4 = (Map<String,String>)
+//                            OperationExecutor.executeCode(
+//                                    currTuple,
+//                                    "Streetname"
+//                            );
+//                    count++;
+//                    result4.forEach((k,v)->{
+//                        System.out.println(k + "\t" + v);
+//                    });
+//                }
 
 
             }
