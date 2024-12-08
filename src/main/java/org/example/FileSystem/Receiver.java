@@ -63,6 +63,31 @@ public class Receiver extends Thread {
                                 e.printStackTrace();
                             }
                             break;
+                        case "get_log" :
+                            //TODO write code for sending the file which is demanded
+                            try {
+                                String hyDFSFileName = String.valueOf(message.getMessageContent().get("hyDFSFileName"));
+                                String localFileName = String.valueOf(message.getMessageContent().get("localFileName"));
+                                if(FileData.checkFilePresent(hyDFSFileName)) {
+                                    FileSender fileSender = new FileSender(
+                                            "HyDFS/" + hyDFSFileName,
+                                            localFileName,
+                                            message.getIpAddress().getHostAddress(),
+                                            Integer.parseInt(String.valueOf(message.getMessageContent().get("senderPort"))),
+                                            "GET",
+                                            "CREATE",
+                                            "Sending Requested File"
+                                    );
+                                    fileSender.run();
+                                    response = "Successful";
+                                }else {
+                                    response = "Unsuccessful file not found";
+                                }
+                                out.println(response);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
                         case "get_file_from_replica" :
                             try {
                                 String hyDFSFileName = String.valueOf(message.getMessageContent().get("hyDFSFileName"));
@@ -175,6 +200,33 @@ public class Receiver extends Thread {
                                 e.printStackTrace();
                             }
                             break;
+                        case "set_failed_op1":
+                            //Action a OP1 needs to take when a Leader asks to perform a task
+                            try {
+                                System.out.println("set_failed_op1");
+                                int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
+                                String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                String pattern = String.valueOf(message.getMessageContent().get("pattern"));
+                                System.out.println("Pattern : " + pattern);
+                                WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                List<Member> sources = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    sources.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("source_" + i)))));
+                                }
+                                List<Member> op2s = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    op2s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op2_" + i)))));
+                                }
+                                Worker worker = new Worker("op1", sources, null, op2s, null, null, null, opName, pattern);
+                                int id = WorkerManager.initializeWorker(worker);
+                                WorkerManager.initializeFailedWorker(worker, failedWorkerId);
+                                //Return the id to leader
+                                out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
                         case "set_op2":
                             //Action a OP2 needs to take when a Leader asks to perform a task
                             try {
@@ -197,6 +249,30 @@ public class Receiver extends Thread {
                                 e.printStackTrace();
                             }
                             break;
+                        case "set_failed_op2":
+                            //Action a OP2 needs to take when a Leader asks to perform a task
+                            try {
+                                System.out.println("set_failed_op2");
+                                int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
+                                int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
+                                String opName = String.valueOf(message.getMessageContent().get("operation_name"));
+                                String pattern = String.valueOf(message.getMessageContent().get("pattern"));
+                                System.out.println("Pattern : " + pattern);
+                                WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
+                                List<Member> op1s = new ArrayList<>();
+                                for (int i = 0; i < tot_ops; i++) {
+                                    op1s.add(MembershipList.memberslist.get(Integer.parseInt(String.valueOf(message.getMessageContent().get("op1_" + i)))));
+                                }
+                                String destFilename = String.valueOf(message.getMessageContent().get("destFilename"));
+                                Worker worker = new Worker("op2", null, op1s, null, null, null, destFilename, opName, pattern);
+                                int id = WorkerManager.initializeWorker(worker);
+                                WorkerManager.initializeFailedWorker(worker, failedWorkerId);
+                                //Return the id to leader
+                                out.println(id + "," + WorkerManager.workers.get(id).receiverPort);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
                         case "start_processing":
                             //TODO based on worker id Manager should set the receiver ports for the specific worker to listen and send data
                             try {
@@ -209,6 +285,22 @@ public class Receiver extends Thread {
                                 WorkerManager.workers.get(workerId).setReceiverPorts(receiverPorts);
                                 System.out.println("Starting Worker:" + workerId);
                                 WorkerManager.startWorker(workerId);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "send_new_node_data":
+                            //TODO based on worker id Manager should set the receiver ports for the specific worker to listen and send data
+                            try {
+                                int newWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
+                                int newWorkerMemberId = Integer.parseInt(String.valueOf(message.getMessageContent().get("new_member_ID")));
+                                int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
+                                String data = String.valueOf(message.getMessageContent().get("data"));
+                                ArrayList<String> receiverPorts = new ArrayList<>();
+                                //TODO set the new worker in the List
+                                WorkerManager.workers.forEach((id, worker)->{
+                                    worker.setNewWorker(newWorkerId, failedWorkerId, newWorkerMemberId);
+                                });
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -264,6 +356,15 @@ public class Receiver extends Thread {
                                 int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 WorkerManager.killWorker(workerId);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            break;
+                        case "resend_lines":
+                            try {
+                                int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
+                                int lineNo = Integer.parseInt(String.valueOf(message.getMessageContent().get("line_num")));
+                                WorkerManager.restartSource(workerId, lineNo);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }

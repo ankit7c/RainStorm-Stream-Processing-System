@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 //TODO based on role a Worker thread will be created and a specific function will be called
 public class Worker extends Thread {
@@ -42,6 +41,7 @@ public class Worker extends Thread {
 
     public List<QueueData> tuplesSent = new CopyOnWriteArrayList<>();
     public List<String> logList = new CopyOnWriteArrayList<>();
+    public HashSet<String> tuplesReceived = new HashSet<>();
 
     public int receiverPort;
     private static volatile boolean running = true;
@@ -50,6 +50,11 @@ public class Worker extends Thread {
     public void stopWorker(){
         System.out.println("Stopping worker");
         running = false;
+    }
+
+    public void restartWorker(){
+        System.out.println("Restarting worker");
+        running = true;
     }
 
     public Worker(String type, List<Member> source , List<Member> op1, List<Member> op2, String ranges, String filename, String destFileName, String operationName, String patten) {
@@ -103,6 +108,36 @@ public class Worker extends Thread {
         sendData("CREATE");
     }
 
+    public void setTuplesReceived(HashSet<String> tuplesReceived) {
+        this.tuplesReceived.addAll(tuplesReceived);
+    }
+
+    public void setNewWorker(int newWorkerId, int failedWorkerId, int newWorkerMemberId) {
+        if(op1s.containsKey(failedWorkerId)){
+            op1s.remove(failedWorkerId);
+            op1s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
+            int key = -1;
+            for (Map.Entry<Integer, Integer> entry : partMapOp1.entrySet()) {
+                if (entry.getValue().equals(failedWorkerId)) {
+                    key = entry.getKey();
+                    break;
+                }
+            }
+            partMapOp1.put(key, newWorkerMemberId);
+        }else{
+            op2s.remove(failedWorkerId);
+            op2s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
+            int key = -1;
+            for (Map.Entry<Integer, Integer> entry : partMapOp2.entrySet()) {
+                if (entry.getValue().equals(failedWorkerId)) {
+                    key = entry.getKey();
+                    break;
+                }
+            }
+            partMapOp2.put(key, newWorkerMemberId);
+        }
+    }
+
     //TODO Function : Source
     public void source(){
         //TODO send the data to members present in op1 based on a partition function
@@ -119,7 +154,7 @@ public class Worker extends Thread {
             try (Scanner scanner = new Scanner(new File(filename))) {
                 String line;
                 int lineNumber = 0;
-                while (scanner.hasNextLine()) {
+                while (scanner.hasNextLine() && running) {
                     line = scanner.nextLine();
                     lineNumber++;
                     if (lineNumber >= startLine && lineNumber <= endLine) {
@@ -131,10 +166,15 @@ public class Worker extends Thread {
                         Member member = op1s.get(workerId);
                         //TODO get a successful or unsucessful message from the sender
                         //if it is unsuccessful then it means the node has failed and remove it from the list
-                        sender.sendTuple(tuple, "tuple", member, workerId, selfId);
-                        tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
-                        logList.add(workerId + " : " + tupleKey + " : sent");
-                        System.out.println(workerId + " : " + tupleKey + " : sent");
+                        String response = sender.sendTuple(tuple, "tuple", member, workerId, selfId);
+                        if(response.contains("Unsuccessful")){
+                            logList.add(workerId + " : " + tupleKey + " : failed sent");
+                            System.out.println(workerId + " : " + tupleKey + " : failed sent");
+                        }else{
+                            tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
+                            logList.add(workerId + " : " + tupleKey + " : sent");
+                            System.out.println(workerId + " : " + tupleKey + " : sent");
+                        }
                         while(!WorkerManager.consumerQueues.get(selfId).isEmpty()){
                             QueueData queueData = WorkerManager.consumerQueues.get(selfId).take();
                             tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
@@ -180,7 +220,9 @@ public class Worker extends Thread {
                 logLine++;
                 if(queueData != null) {
                     if (queueData.type.equals("tuple")) {
-                        System.out.println("Got Tuple id : " + queueData.tupleId);
+                        if(tuplesReceived.contains(queueData.tupleId)){
+                            System.out.println("Got Duplicate Tuple id : " + queueData.tupleId);
+                        }
                         logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
                         Map<String, String> result = (Map<String, String>)
                                 OperationExecutor.executeCode(
@@ -198,9 +240,15 @@ public class Worker extends Thread {
                             //TODO get a successful or unsucessful message from the sender
                             //if it is unsuccessful then it means the node has failed, so just put a log that unable to send to __ worker
                             String response = sender.sendTuple(tuple, "tuple", member, workerId, selfId);
-                            tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
-                            logList.add(workerId + " : " + tuple.getId() + " : sent");
-                            System.out.println(workerId + " : " + tuple.getId() + " : sent");
+                            if(response.contains("Unsuccessful")){
+                                logList.add(workerId + " : " + tuple.getId() + " : failed sent");
+                                System.out.println(workerId + " : " + tuple.getId() + " : failed sent");
+                            }else {
+                                tuplesSent.add(new QueueData(selfId, workerId, member, tuple, "tuple", tuple.getId()));
+                                logList.add(workerId + " : " + tuple.getId() + " : sent");
+                                System.out.println(workerId + " : " + tuple.getId() + " : sent");
+                            }
+                            tuplesReceived.add(queueData.tupleId);
                             //Save and send the logs to HyDFS
                             if(logLine%100 == 0) {
                                 logList.add(selfId + " : sending Logs");
@@ -260,39 +308,44 @@ public class Worker extends Thread {
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).poll(100, TimeUnit.MILLISECONDS);
                 if(queueData != null) {
                     if (queueData.type.equals("tuple")) {
-                        System.out.println("Got Tuple id : " + queueData.tupleId);
-                        logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
-                        Map<String, String> result = (Map<String, String>)
-                                OperationExecutor.executeCode(
-                                        queueData.tuple,
-                                        pattern
-                                );
-                        Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
-                        int count = 0;
-                        while (iterator.hasNext()) {
-                            Map.Entry<String, String> entry = iterator.next();
-                            Tuple<String, String> tuple = new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
-                            logList.add(tuple.getId() + " : processed");
-                            System.out.println(tuple.getId() + " : processed");
-                            //Save and send the logs to HyDFS
-                            tupleList.add(tuple);
-                            if(logLine%100 == 0) {
-                                logList.add(selfId + " : sending Logs");
-                                saveLog(logList);
-                                saveData(tupleList);
-                                sendLog("APPEND");
-                                logList.clear();
-                                tupleList.clear();
-                                //Send the Data to HyDFS
-                                OperationExecutor.saveCode();
-                                sendData("APPEND");
-                                sendState();
+                        if(tuplesReceived.contains(queueData.tupleId)) {
+                            System.out.println("Got Tuple id : " + queueData.tupleId);
+                            logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
+                            Map<String, String> result = (Map<String, String>)
+                                    OperationExecutor.executeCode(
+                                            queueData.tuple,
+                                            pattern
+                                    );
+                            Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
+                            int count = 0;
+                            while (iterator.hasNext()) {
+                                Map.Entry<String, String> entry = iterator.next();
+                                Tuple<String, String> tuple = new Tuple(queueData.tupleId + "_" + count, entry.getKey(), entry.getValue());
+                                logList.add(tuple.getId() + " : processed");
+                                System.out.println(tuple.getId() + " : processed");
+                                //Save and send the logs to HyDFS
+                                tupleList.add(tuple);
+                                tuplesReceived.add(queueData.tupleId);
+                                if (logLine % 100 == 0) {
+                                    logList.add(selfId + " : sending Logs and state");
+                                    saveLog(logList);
+                                    saveData(tupleList);
+                                    sendLog("APPEND");
+                                    logList.clear();
+                                    tupleList.clear();
+                                    //Send the Data to HyDFS
+                                    OperationExecutor.saveCode();
+                                    sendData("APPEND");
+                                    sendState();
+                                }
+                                //send data to Introducer
+                                sender.sendTupleToLeader(selfId + " : " + tuple.getKey() + " : " + tuple.getValue(), WorkerManager.leader, selfId);
                             }
-                            //send data to Introducer
-                            sender.sendTupleToLeader(selfId + " : " + tuple.getKey() + " : " + tuple.getValue(), WorkerManager.leader, selfId);
+                            sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
+                            logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : Ack sent");
+                        }else{
+                            System.out.println("Got Duplicate Tuple id : " + queueData.tupleId);
                         }
-                        sender.sendAckToParent(queueData.tuple.getId(), queueData.member, queueData.senderWorkerId, selfId);
-                        logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : Ack sent");
                     } else if (queueData.type.equals("ack")) {
                         tuplesSent.removeIf(qd -> qd.tupleId.equals(queueData.tupleId));
                         logList.add(queueData.tupleId + " Ack Received");
@@ -432,7 +485,7 @@ public class Worker extends Thread {
 
     public void sendState(){
         String FileName = "local\\" + selfId + "_" + type +"_data.ser";
-        String HyDFSFileName = destFileName;
+        String HyDFSFileName = selfId + "_" + type +"_data.ser";
         try {
             int fileNameHash = HashFunction.hash(HyDFSFileName);
             Member member = MembershipList.getMemberById(fileNameHash);

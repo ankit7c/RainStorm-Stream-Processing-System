@@ -33,7 +33,8 @@ public class Sender {
             out.println(msg);
             return in.readLine();
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
+            System.out.println(e.getMessage());
             return "Unsuccessful";
         }
     }
@@ -387,6 +388,40 @@ public class Sender {
         return status;
     }
 
+    public Map<Leader.WorkerTasks, String> setFailedOp1(Member member, List<Member> source, List<Member> op2, String op1_name, String pattern, int failedWorkerID) {
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("set_failed_op1");
+            messageContent.put("num_tasks", op2.size());
+            messageContent.put("operation_name", op1_name);
+            messageContent.put("pattern", pattern);
+            messageContent.put("failed_worker_ID", failedWorkerID);
+            int i=0;
+            for (Member value : source) {
+                messageContent.put("source_" + i, value.getId());
+                i++;
+            }
+            i=0;
+            for (Member value : op2) {
+                System.out.println("value.getId() : " + value.getId());
+                messageContent.put("op2_" + i, value.getId());
+                i++;
+            }
+            Message msg = new Message("set_failed_op1",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return status;
+    }
+
     // Use below function when a count or OP2 performing node fails
     public Map<Leader.WorkerTasks, String> setOp2(Member member, List<Member> op1, String destFilename, String op2_name, String pattern) {
         Map<Leader.WorkerTasks, String> status = new HashMap<>();
@@ -405,6 +440,36 @@ public class Sender {
                 i++;
             }
             Message msg = new Message("set_op2",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            status.put(new Leader.WorkerTasks("op2", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    public Map<Leader.WorkerTasks, String> setFailedOp2(Member member, List<Member> op1, String destFilename, String op2_name, String pattern, int failedWorkerID) {
+        Map<Leader.WorkerTasks, String> status = new HashMap<>();
+        try {
+            System.out.println("op2");
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("set_failed_op2");
+            messageContent.put("destFilename", destFilename);
+            messageContent.put("num_tasks", op1.size());
+            messageContent.put("operation_name", op2_name);
+            messageContent.put("pattern", pattern);
+            messageContent.put("failed_worker_ID", failedWorkerID);
+            int i=0;
+            for (Member value : op1) {
+                messageContent.put("op1_" + i, value.getId());
+                i++;
+            }
+            Message msg = new Message("set_failed_op2",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
@@ -452,6 +517,42 @@ public class Sender {
                 i++;
             }
             Message msg = new Message("start_processing",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void resendLines(Member member, int workerId, int lineNum){
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("resend_lines");
+            messageContent.put("worker_id", workerId);
+            messageContent.put("line_num", lineNum);
+            Message msg = new Message("resend_lines",
+                    String.valueOf(FDProperties.getFDProperties().get("machineIp")),
+                    String.valueOf(FDProperties.getFDProperties().get("machinePort")),
+                    messageContent);
+            sendMessage(IpAddress, port, msg);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void sendNewNodeData(Member member, int workerId, int failedWorkerId, String data, int newMemberId){
+        try {
+            String IpAddress = member.getIpAddress();
+            int port = Integer.parseInt(member.getPort());
+            Map<String, Object> messageContent = setMessage("send_new_node_data");
+            messageContent.put("worker_id", workerId);
+            messageContent.put("data", data);
+            messageContent.put("failed_worker_ID", failedWorkerId);
+            messageContent.put("new_member_ID", newMemberId);
+            Message msg = new Message("send_new_node_data",
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);

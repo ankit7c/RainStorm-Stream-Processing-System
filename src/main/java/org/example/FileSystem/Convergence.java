@@ -1,5 +1,6 @@
 package org.example.FileSystem;
 
+import org.example.Stream.Leader;
 import org.example.entities.FDProperties;
 import org.example.entities.FileData;
 import org.example.entities.Member;
@@ -64,18 +65,15 @@ public class Convergence extends Thread {
                 }
                 //TODO add the logic to handle failures of node
                 for (Integer failedNodeId : MembershipList.failedNodes){
-
+                    Leader.updateFailedNode(failedNodeId);
                 }
                 MembershipList.failedNodes.clear();
                 checkMergeCounter++;
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-
-
-
     }
 
 
