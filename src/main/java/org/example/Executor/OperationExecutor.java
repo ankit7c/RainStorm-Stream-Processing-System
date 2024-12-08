@@ -11,18 +11,18 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class OperationExecutor {
-    public static File classDir;
-    public static  String fullClassName;
-    public static  String methodName;
-    public static  String saveMethodName;
-    public static  String loadMethodName;
-    public static  String savePath;
-    public static  String saveFileName;
-    public static Boolean stateful;
-    public static Object instance;
-    public static Class<?> wordCount;
+    public  File classDir;
+    public   String fullClassName;
+    public   String methodName;
+    public   String saveMethodName;
+    public   String loadMethodName;
+    public   String savePath;
+    public   String saveFileName;
+    public  Boolean stateful;
+    public  Object instance;
+    public  Class<?> wordCount;
 
-    public static void set(String operationName, int selfId, String type) {
+    public  void set(String operationName, int selfId, String type) {
         //TODO read the config file to get the above details
 //        if(operationName.equals("op1")) {
 //            classDir = new File("C:\\Users\\saura\\Documents\\Distributed_Systems\\MP4\\Rain-Storm\\Executables");
@@ -69,7 +69,7 @@ public class OperationExecutor {
         }
     }
 
-    public static void loadInstance() throws Exception {
+    public  void loadInstance() throws Exception {
         URL[] urls = { classDir.toURI().toURL() };
         URLClassLoader classLoader = URLClassLoader.newInstance(urls);
         // Load and instantiate the class
@@ -79,14 +79,14 @@ public class OperationExecutor {
         instance = getInstanceMethod.invoke(null);
     }
 
-    public static void saveCode() throws Exception{
+    public  void saveCode() throws Exception{
         if(stateful){
             Method loadStateMethod = wordCount.getMethod(saveMethodName, String.class);
             loadStateMethod.invoke(instance, savePath+saveFileName);
         }
     }
 
-    public static void loadCode() throws Exception {
+    public  void loadCode() throws Exception {
         if(stateful) {
             File dir = new File(savePath + saveFileName);
             if (dir.exists()) {
@@ -96,7 +96,7 @@ public class OperationExecutor {
         }
     }
 
-    public static Object executeCode(Tuple tuple, String pattern) throws Exception {
+    public  Object executeCode(Tuple tuple, String pattern) throws Exception {
 
         Method method = wordCount.getMethod(methodName,String.class,String.class,String.class);
         return method.invoke(instance, tuple.getKey(), tuple.getValue() ,pattern);

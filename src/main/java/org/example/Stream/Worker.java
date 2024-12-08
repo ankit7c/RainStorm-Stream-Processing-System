@@ -8,6 +8,9 @@ import org.example.entities.Member;
 import org.example.entities.MembershipList;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.ArrayList;
@@ -146,6 +149,7 @@ public class Worker extends Thread {
         //------------------------------
         try {
             Iterator<Map.Entry<Integer,Member>> iterator = op1s.entrySet().iterator();
+            System.out.println("Range : " + selfId + " : " + ranges);
             String[] range = ranges.split(",");
             int startLine = Integer.parseInt(range[0]);
             int endLine = Integer.parseInt(range[1]);
@@ -190,6 +194,10 @@ public class Worker extends Thread {
                     }
                     logLine++;
                 }
+                logList.add(selfId + " : sending Logs");
+                saveLog(logList);
+                logList.clear();
+                sendLog("APPEND");
                 while (iterator.hasNext() && running) {
                     Map.Entry<Integer,Member> entry = iterator.next();
                     int workerId = entry.getKey();
@@ -202,6 +210,10 @@ public class Worker extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            logList.add(selfId + " : sending Logs");
+            saveLog(logList);
+            logList.clear();
+            sendLog("APPEND");
             System.out.println("Stopping worker as process ended");
         }catch (Exception e){
             e.printStackTrace();
@@ -211,8 +223,9 @@ public class Worker extends Thread {
     //TODO Function : Split
     public void op1() throws Exception {
         try {
-            OperationExecutor.set(operationName, selfId, type);
-            OperationExecutor.loadInstance();
+            OperationExecutor operationExecutor = new OperationExecutor();
+            operationExecutor.set(operationName, selfId, type);
+            operationExecutor.loadInstance();
             System.out.println("Pattern : " + pattern);
             int logLine = -1;
             while (running) {
@@ -225,7 +238,7 @@ public class Worker extends Thread {
                         }
                         logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
                         Map<String, String> result = (Map<String, String>)
-                                OperationExecutor.executeCode(
+                                operationExecutor.executeCode(
                                         queueData.tuple,
                                         pattern);
                         Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
@@ -297,25 +310,27 @@ public class Worker extends Thread {
     //TODO Function : Count
     public void op2() throws Exception {
         try {
-            OperationExecutor.set(operationName, selfId, type);
-            OperationExecutor.loadInstance();
-            OperationExecutor.loadCode();
+            OperationExecutor operationExecutor = new OperationExecutor();
+            operationExecutor.set(operationName, selfId, type);
+            operationExecutor.loadInstance();
+            operationExecutor.loadCode();
             System.out.println("Pattern : " + pattern);
-            int logLine = -1;
+            int logLine = 1;
             List<Tuple> tupleList = new ArrayList<>();
             while (running) {
                 logLine++;
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).poll(100, TimeUnit.MILLISECONDS);
                 if(queueData != null) {
                     if (queueData.type.equals("tuple")) {
-                        if(tuplesReceived.contains(queueData.tupleId)) {
+                        if(!tuplesReceived.contains(queueData.tupleId)) {
                             System.out.println("Got Tuple id : " + queueData.tupleId);
                             logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
                             Map<String, String> result = (Map<String, String>)
-                                    OperationExecutor.executeCode(
+                                    operationExecutor.executeCode(
                                             queueData.tuple,
                                             pattern
                                     );
+                            logList.add("New Tuples : " + result.size() + " : " + queueData.tuple.getValue());
                             Iterator<Map.Entry<String, String>> iterator = result.entrySet().iterator();
                             int count = 0;
                             while (iterator.hasNext()) {
@@ -334,7 +349,7 @@ public class Worker extends Thread {
                                     logList.clear();
                                     tupleList.clear();
                                     //Send the Data to HyDFS
-                                    OperationExecutor.saveCode();
+                                    operationExecutor.saveCode();
                                     sendData("APPEND");
                                     sendState();
                                 }
@@ -362,6 +377,7 @@ public class Worker extends Thread {
                             tupleList.clear();
                             //Send the Data to HyDFS
                             sendData("APPEND");
+                            sendState();
                         }
                     }
                 }
@@ -369,6 +385,7 @@ public class Worker extends Thread {
             saveLog(logList);
             sendLog("APPEND");
             logList.clear();
+            sendState();
             System.out.println("Stopping worker as process ended");
         }catch (Exception e){
             System.out.println("Worker failed while processing OP1 : " + selfId);
@@ -414,6 +431,7 @@ public class Worker extends Thread {
     public void sendLog(String filetype){
         String FileName = "local\\" + selfId + "_" + type +"_log.txt";
         String HyDFSFileName = selfId + "_" + type +"_log.txt";
+        System.out.println("Sending data : " + HyDFSFileName);
         try {
             if(filetype.equals("APPEND")) {
                 int fileNameHash = HashFunction.hash(HyDFSFileName);
@@ -426,9 +444,7 @@ public class Worker extends Thread {
                         "UPLOAD",
                         "APPEND",
                         "");
-//                System.out.println("Sending file");
                 fileSender.run();
-//                System.out.println("File Sent");
             }else{
                 int fileNameHash = HashFunction.hash(HyDFSFileName);
                 Member member = MembershipList.getMemberById(fileNameHash);
@@ -450,6 +466,7 @@ public class Worker extends Thread {
     public void sendData(String filetype){
         String FileName = "local\\" + selfId + "_" + type +"_data.txt";
         String HyDFSFileName = destFileName;
+        System.out.println("Sending data : " + FileName);
         try {
             if(filetype.equals("APPEND")) {
                 int fileNameHash = HashFunction.hash(HyDFSFileName);
@@ -484,22 +501,26 @@ public class Worker extends Thread {
     }
 
     public void sendState(){
-        String FileName = "local\\" + selfId + "_" + type +"_data.ser";
-        String HyDFSFileName = selfId + "_" + type +"_data.ser";
-        try {
-            int fileNameHash = HashFunction.hash(HyDFSFileName);
-            Member member = MembershipList.getMemberById(fileNameHash);
-            FileSender fileSender = new FileSender(
-                    FileName,
-                    HyDFSFileName,
-                    member.getIpAddress(),
-                    Integer.parseInt(member.getPort()),
-                    "UPLOAD",
-                    "CREATE",
-                    "");
-            fileSender.run();
-        } catch (RuntimeException e) {
-            System.out.println("File Append was unsuccessful");
+        String FileName = "local\\" + selfId + "_" + type +"_ser.ser";
+        String HyDFSFileName = selfId + "_" + type +"_ser.ser";
+        System.out.println("Sending data : " + HyDFSFileName);
+        Path path = Paths.get(FileName);
+        if(Files.exists(path)) {
+            try {
+                int fileNameHash = HashFunction.hash(HyDFSFileName);
+                Member member = MembershipList.getMemberById(fileNameHash);
+                FileSender fileSender = new FileSender(
+                        FileName,
+                        HyDFSFileName,
+                        member.getIpAddress(),
+                        Integer.parseInt(member.getPort()),
+                        "UPLOAD",
+                        "CREATE",
+                        "");
+                fileSender.run();
+            } catch (RuntimeException e) {
+                System.out.println("File Append was unsuccessful");
+            }
         }
     }
 

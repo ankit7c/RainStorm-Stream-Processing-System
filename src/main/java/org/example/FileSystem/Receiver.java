@@ -252,6 +252,7 @@ public class Receiver extends Thread {
                         case "set_failed_op2":
                             //Action a OP2 needs to take when a Leader asks to perform a task
                             try {
+//                                deleteHyDFSFiles.deleteLogs();
                                 System.out.println("set_failed_op2");
                                 int tot_ops = Integer.parseInt(String.valueOf(message.getMessageContent().get("num_tasks")));
                                 int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
@@ -317,6 +318,7 @@ public class Receiver extends Thread {
                                 Tuple tuple = new Tuple(tupleId, tupleKey, tupleValue);
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 WorkerManager.assignTuple(receiverWorkerId, senderWorkerId, member, tuple, tupleType);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -328,6 +330,7 @@ public class Receiver extends Thread {
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 String tupleId = String.valueOf(message.getMessageContent().get("tuple_id"));
                                 WorkerManager.assignAck(receiverWorkerId, senderWorkerId, member, tupleId);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -338,6 +341,7 @@ public class Receiver extends Thread {
                                 String result = String.valueOf(message.getMessageContent().get("result"));
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 System.out.println(member.getName() + " : " + senderWorkerId + " : " + result);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -347,6 +351,7 @@ public class Receiver extends Thread {
                                 int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 Leader.processEOFs(senderWorkerId);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -356,6 +361,7 @@ public class Receiver extends Thread {
                                 int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
                                 Member member = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 WorkerManager.killWorker(workerId);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -365,6 +371,7 @@ public class Receiver extends Thread {
                                 int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
                                 int lineNo = Integer.parseInt(String.valueOf(message.getMessageContent().get("line_num")));
                                 WorkerManager.restartSource(workerId, lineNo);
+                                out.println("Successful");
                             }catch (Exception e){
                                 e.printStackTrace();
                             }

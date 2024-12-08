@@ -69,7 +69,7 @@ public class Leader {
             long start = 0;
             for(int i = 0; i < num_tasks; i++){
                 String range = ((i == num_tasks-1) ? (start + "," + line) : (start + "," + (start + (line / num_tasks))));
-                start = start + (line / num_tasks);
+                start = start + (line / num_tasks) + 1;
                 ranges.add(range);
                 System.out.println("Range: " + range);
                 System.out.println("id : " + ids.get(pointer%size));
@@ -131,19 +131,19 @@ public class Leader {
                     System.out.println("Killing worker " + k);
                     sender.killWorkers(v.member, k);
                 });
+                //Code to clear all the rainstorm data
+                System.out.println("Clearing all caches");
+                sources.clear();
+                op1.clear();
+                op2.clear();
+                ranges.clear();
+                workerIds.clear();
+                pointer = 0;
+                totalEOFs.clear();
             }catch (Exception e){
                 e.printStackTrace();
             }
         }
-        //TODO code to clear all the rainstorm data
-        System.out.println("Clearing all caches");
-        sources.clear();
-        op1.clear();
-        op2.clear();
-        ranges.clear();
-        workerIds.clear();
-        pointer = 0;
-        totalEOFs.clear();
     }
 
     //TODO Function to take action when a node is failed
@@ -294,7 +294,7 @@ public class Leader {
                     String senderId = temp[0].replace(" ", "");
                     int lineNo = Integer.parseInt(temp[1].replace(" ", ""));
                     sourceRange.forEach((id, range) -> {
-                        if(lineNo > range.start && lineNo < range.end) {
+                        if(lineNo >= range.start && lineNo <= range.end) {
                             rangeMap.put(Integer.valueOf(senderId), Math.max(lineNo, rangeMap.get(senderId)));
                         }
                     });
@@ -323,7 +323,7 @@ public class Leader {
                         String senderId = temp[0].replace(" ", "");
                         int lineNo = Integer.parseInt(temp[1].replace(" ", ""));
                         sourceRange.forEach((id, range) -> {
-                            if(lineNo > range.start && lineNo < range.end) {
+                            if(lineNo >= range.start && lineNo <= range.end) {
                                 rangeMapOp1.put(id, Math.max(lineNo, rangeMap.get(id)));
                             }
                         });
