@@ -106,6 +106,7 @@ public class Leader {
             workerIds.forEach((workerId,workerTask) -> {
                 //Along with worker id send the data
                 receiverPorts.add(workerTask.type + ":" + workerTask.member.getId() + ":" + workerTask.workerId + ":" + workerTask.receiverPort);
+                System.out.println(workerTask.type + ":" + workerTask.member.getId() + ":" + workerTask.workerId + ":" + workerTask.receiverPort);
             });
             workerIds.forEach((workerId,workerTask) -> {
                 Member member = memberslist.get(workerTask.member.getId());
@@ -159,7 +160,7 @@ public class Leader {
                 failMember = value.member;
             }
         }
-
+//        Failedid;
         for(Integer failedId : Failedids){
             WorkerTasks workerTask = workerIds.get(failedId);
             String type = workerTask.type;

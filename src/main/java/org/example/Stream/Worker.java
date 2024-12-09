@@ -75,6 +75,7 @@ public class Worker extends Thread {
 
     public void setReceiverPorts(ArrayList<String> receiverPorts) {
         for (String port : receiverPorts) {
+            System.out.println(port);
             if(!port.isBlank()) {
                 String[] s = port.split(":");
                 System.out.println("I am saving details for : " + port);

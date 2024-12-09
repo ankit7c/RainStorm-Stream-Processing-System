@@ -282,6 +282,7 @@ public class Receiver extends Thread {
                                 ArrayList<String> receiverPorts = new ArrayList<>();
                                 for (int i = 0; i < totReceiverPorts; i++) {
                                     receiverPorts.add(String.valueOf(message.getMessageContent().get("receiver_port_" + i)));
+                                    System.out.println("Received String : " + String.valueOf(message.getMessageContent().get("receiver_port_" + i)));
                                 }
                                 WorkerManager.workers.get(workerId).setReceiverPorts(receiverPorts);
                                 System.out.println("Starting Worker:" + workerId);
