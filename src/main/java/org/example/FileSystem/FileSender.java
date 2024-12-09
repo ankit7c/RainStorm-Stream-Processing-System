@@ -75,7 +75,7 @@ public class FileSender implements Runnable {
             fileChannel.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             result = "File not able to be sent!";
             FileTransferManager.logEvent("File sending failed for " + localFileName + ": " + e.getMessage());
         }

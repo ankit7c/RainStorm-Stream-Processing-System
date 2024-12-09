@@ -20,8 +20,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 //TODO based on role a Worker thread will be created and a specific function will be called
-public class Worker extends Thread {
-
+public class Worker implements Runnable {
+    public Thread thread;
     public int selfId;
     List<Member> source;
     List<Member> op1;
@@ -78,12 +78,6 @@ public class Worker extends Thread {
             System.out.println(port);
             if(!port.isBlank()) {
                 String[] s = port.split(":");
-//                System.out.println("My Id : " + MembershipList.selfId);
-//                System.out.println("Membership List");
-//                MembershipList.memberslist.forEach((k, v) -> System.out.println(k + "," + v.getName()));
-//                System.out.println("Members List");
-//                MembershipList.members.forEach((k, v) -> System.out.println(k + "," + v.getName()));
-//                System.out.println("I am saving details for : " + port);
                 if (s[0].equals("source")) {
                     sources.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
                 } else if (s[0].equals("op1")) {
@@ -121,30 +115,52 @@ public class Worker extends Thread {
         this.tuplesReceived.addAll(tuplesReceived);
     }
 
-    public void setNewWorker(int newWorkerId, int failedWorkerId, int newWorkerMemberId) {
-        if(op1s.containsKey(failedWorkerId)){
+    public void setNewWorker(String type, int newWorkerId, int failedWorkerId, int newWorkerMemberId) {
+        EOFs = 0;
+        if(newWorkerId == selfId)
+            return;
+        if(type.equals("op1")) {
             op1s.remove(failedWorkerId);
-            op1s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
+            if(!op1s.containsKey(newWorkerId))
+                op1s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
             int key = -1;
             for (Map.Entry<Integer, Integer> entry : partMapOp1.entrySet()) {
-                if (entry.getValue().equals(failedWorkerId)) {
+                if (entry.getValue() == failedWorkerId) {
                     key = entry.getKey();
                     break;
                 }
             }
-            partMapOp1.put(key, newWorkerMemberId);
+            if(key != -1){
+                partMapOp1.put(key, newWorkerId);
+            }
         }else{
             op2s.remove(failedWorkerId);
-            op2s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
+            if(!op2s.containsKey(newWorkerId))
+                op2s.put(newWorkerId, MembershipList.memberslist.get(newWorkerMemberId));
             int key = -1;
             for (Map.Entry<Integer, Integer> entry : partMapOp2.entrySet()) {
-                if (entry.getValue().equals(failedWorkerId)) {
+                if (entry.getValue() == failedWorkerId) {
                     key = entry.getKey();
                     break;
                 }
             }
-            partMapOp2.put(key, newWorkerMemberId);
+            if(key != -1) {
+                partMapOp2.put(key, newWorkerId);
+            }
         }
+//        System.out.println("List After setting new worker");
+//        op1s.forEach((k,v) -> {
+//            System.out.println(k + " : " + v.getName());
+//        });
+//        op2s.forEach((k,v) -> {
+//            System.out.println(k + " : " + v.getName());
+//        });
+//        partMapOp1.forEach((k,v) -> {
+//            System.out.println(k + " : " + v);
+//        });
+//        partMapOp2.forEach((k,v) -> {
+//            System.out.println(k + " : " + v);
+//        });
     }
 
     //TODO Function : Source
@@ -232,16 +248,15 @@ public class Worker extends Thread {
             OperationExecutor operationExecutor = new OperationExecutor();
             operationExecutor.set(operationName, selfId, type);
             operationExecutor.loadInstance();
-            System.out.println("Pattern : " + pattern);
             int logLine = -1;
             while (running) {
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).poll(100, TimeUnit.MILLISECONDS);
                 logLine++;
                 if(queueData != null) {
                     if (queueData.type.equals("tuple")) {
-                        if(tuplesReceived.contains(queueData.tupleId)){
-                            System.out.println("Got Duplicate Tuple id : " + queueData.tupleId);
-                        }
+//                        if(tuplesReceived.contains(queueData.tupleId)){
+//                            System.out.println("Got Duplicate Tuple id : " + queueData.tupleId);
+//                        }
                         logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
                         Map<String, String> result = (Map<String, String>)
                                 operationExecutor.executeCode(
@@ -293,7 +308,6 @@ public class Worker extends Thread {
                                 int workerId = entry.getKey();
                                 Member member = entry.getValue();
                                 String response = sender.sendTuple(queueData.tuple, "end", member, workerId, selfId);
-                                System.out.println("Sending EOF to " + workerId);
                                 saveLog(logList);
                                 sendLog("APPEND");
                                 logList.clear();
@@ -306,7 +320,7 @@ public class Worker extends Thread {
             saveLog(logList);
             sendLog("APPEND");
             logList.clear();
-            System.out.println("Stopping worker as process ended");
+            System.out.println("Stopping worker as process ended : " + selfId);
         }catch (Exception e){
             System.out.println("Worker failed while processing OP1 : " + selfId);
             e.printStackTrace();
@@ -320,7 +334,6 @@ public class Worker extends Thread {
             operationExecutor.set(operationName, selfId, type);
             operationExecutor.loadInstance();
             operationExecutor.loadCode();
-            System.out.println("Pattern : " + pattern);
             int logLine = 1;
             List<Tuple> tupleList = new ArrayList<>();
             while (running) {
@@ -328,7 +341,7 @@ public class Worker extends Thread {
                 QueueData queueData = WorkerManager.consumerQueues.get(selfId).poll(100, TimeUnit.MILLISECONDS);
                 if(queueData != null) {
                     if (queueData.type.equals("tuple")) {
-                        if(!tuplesReceived.contains(queueData.tupleId)) {
+                        if(!tuplesReceived.contains(queueData.tuple.getId())) {
                             System.out.println("Got Tuple id : " + queueData.tupleId);
                             logList.add(queueData.senderWorkerId + " : " + queueData.tuple.getId() + " : received");
                             Map<String, String> result = (Map<String, String>)
@@ -346,7 +359,7 @@ public class Worker extends Thread {
                                 System.out.println(tuple.getId() + " : processed");
                                 //Save and send the logs to HyDFS
                                 tupleList.add(tuple);
-                                tuplesReceived.add(queueData.tupleId);
+                                tuplesReceived.add(queueData.tuple.getId());
                                 if (logLine % 100 == 0) {
                                     logList.add(selfId + " : sending Logs and state");
                                     saveLog(logList);
@@ -508,7 +521,7 @@ public class Worker extends Thread {
     }
 
     public void sendState(){
-        String FileName = "local\\" + selfId + "_" + type +"_ser.ser";
+        String FileName = selfId + "_" + type +"_ser.ser";
         String HyDFSFileName = selfId + "_" + type +"_ser.ser";
         System.out.println("Sending data : " + HyDFSFileName);
         Path path = Paths.get(FileName);

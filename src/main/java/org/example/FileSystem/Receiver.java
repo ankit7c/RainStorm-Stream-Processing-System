@@ -208,7 +208,6 @@ public class Receiver extends Thread {
                                 int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
                                 String opName = String.valueOf(message.getMessageContent().get("operation_name"));
                                 String pattern = String.valueOf(message.getMessageContent().get("pattern"));
-                                System.out.println("Pattern : " + pattern);
                                 WorkerManager.leader = MembershipList.getMemberById(Integer.parseInt(String.valueOf(message.getMessageContent().get("senderId"))));
                                 List<Member> sources = new ArrayList<>();
                                 for (int i = 0; i < tot_ops; i++) {
@@ -294,14 +293,24 @@ public class Receiver extends Thread {
                         case "send_new_node_data":
                             //TODO based on worker id Manager should set the receiver ports for the specific worker to listen and send data
                             try {
-                                int newWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
-                                int newWorkerMemberId = Integer.parseInt(String.valueOf(message.getMessageContent().get("new_member_ID")));
+                                int workerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("worker_id")));
+//                                int newWorkerMemberId = Integer.parseInt(String.valueOf(message.getMessageContent().get("new_member_ID")));
                                 int failedWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("failed_worker_ID")));
                                 String data = String.valueOf(message.getMessageContent().get("data"));
+                                String[] v = data.split(":");
+                                int newWorkerId = Integer.parseInt(v[2]);
+                                String newWorkerType = v[0];
+                                String newreceiverport = v[3];
+                                int newWorkerMemberId = Integer.parseInt(v[1]);
                                 ArrayList<String> receiverPorts = new ArrayList<>();
                                 //TODO set the new worker in the List
-                                WorkerManager.workers.forEach((id, worker)->{
-                                    worker.setNewWorker(newWorkerId, failedWorkerId, newWorkerMemberId);
+                                System.out.println("New worker id :" + newWorkerId);
+                                System.out.println("fail worker id :" + failedWorkerId);
+                                System.out.println("fail worker id :" + newWorkerMemberId);
+                                System.out.println("Tot workers " + WorkerManager.workers.size());
+                                WorkerManager.workers.forEach((id, t)->{
+                                    System.out.println("Setting new workers for :" + t.selfId );
+                                    t.setNewWorker(newWorkerType, newWorkerId, failedWorkerId, newWorkerMemberId);
                                 });
                             }catch (Exception e){
                                 e.printStackTrace();
@@ -311,7 +320,6 @@ public class Receiver extends Thread {
                             try {
                                 int receiverWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("receiver_worker_id")));
                                 int senderWorkerId = Integer.parseInt(String.valueOf(message.getMessageContent().get("sender_worker_id")));
-                                System.out.println("At line no 214: " + message.getMessageContent().get("tuple_id"));
                                 String tupleType = String.valueOf(message.getMessageContent().get("type"));
                                 String tupleId = String.valueOf(message.getMessageContent().get("tuple_id"));
                                 String tupleKey = String.valueOf(message.getMessageContent().get("tuple_key"));

@@ -65,7 +65,8 @@ public class Convergence extends Thread {
                 }
                 //TODO add the logic to handle failures of node
                 for (Integer failedNodeId : MembershipList.failedNodes){
-                    Leader.updateFailedNode(failedNodeId);
+                    System.out.println("Adding FAiled Nodes");
+                    Leader.addFailedNodes(failedNodeId);
                 }
                 MembershipList.failedNodes.clear();
                 checkMergeCounter++;

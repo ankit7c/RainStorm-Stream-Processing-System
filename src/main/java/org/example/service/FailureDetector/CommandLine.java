@@ -180,7 +180,7 @@ public class CommandLine implements Runnable {
                             break;
 
                         // Commands for Rainstorm
-                        // rainstorm Filter ExtractColumns input/TrafficSigns_100.csv hydfs_dest_filename.txt 1 "Streetname" "Streetname"
+                        // rainstorm Filter ExtractColumns input/TrafficSigns_10000.csv hydfs_dest_filename.txt 1 "Streetname" "Streetname"
                         // rainstorm FilterOnColumn Count input/TrafficSigns_1000.csv countCat.txt 1 "Punched_Telespar" "Punched_Telespar"
                         // rainstorm FilterOnColumn Count input/TrafficSigns_1000.csv countCat.txt 1 "Power_Pole" "Power_Pole"
                         // rainstorm Filter ExtractColumns input/Traffic_Signs.csv hydfs_dest_filename.txt 1

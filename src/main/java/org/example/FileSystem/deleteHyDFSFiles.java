@@ -31,7 +31,7 @@ public class deleteHyDFSFiles {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Files.delete(file); // Delete each file
-                System.out.println("Deleted file: " + file);
+//                System.out.println("Deleted file: " + file);
                 return FileVisitResult.CONTINUE;
             }
 

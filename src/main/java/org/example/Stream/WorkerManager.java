@@ -38,9 +38,12 @@ public class WorkerManager {
         }
 
     public static void startWorker(int workerid) {
-        Worker worker = workers.get(workerid);
+
         try{
-            worker.start();
+            Worker worker = workers.get(workerid);
+            Thread thread = new Thread(worker);
+            thread.start();
+            worker.thread = thread;
         }
         catch(Exception e){
             e.printStackTrace();
@@ -57,18 +60,27 @@ public class WorkerManager {
     }
 
     public static void restartSource(int workerId, int lineNo){
+        //TODO check what is the current line no
         Worker worker = workers.get(workerId);
         System.out.println("Source " + workerId + " restarting source from " + lineNo);
-        worker.stopWorker();
+        workers.get(workerId).stopWorker();
+        try{
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Is source alive : " + workers.get(workerId).thread.isAlive());
         String[] range = worker.ranges.split(",");
-        worker.ranges = lineNo + "," + range[1];
-        worker.restartWorker();
-        worker.start();
+        workers.get(workerId).ranges = lineNo + "," + range[1];
+        workers.get(workerId).restartWorker();
+        Thread thread = new Thread(worker);
+        thread.start();
+        worker.thread = thread;
     }
 
     public static void assignTuple(int workerId, int senderId, Member member, Tuple tuple, String tupleType) {
         try {
-            System.out.println("Assigning tuple : " + workerId);
+//            System.out.println("Assigning tuple : " + workerId + " " + tuple.getId() + " " + tupleType + " " + tuple.getKey() );
             consumerQueues.get(workerId).put(new QueueData(senderId, workerId, member, tuple, tupleType, tuple.getId()));
         }catch (Exception e){
             e.printStackTrace();
@@ -86,14 +98,22 @@ public class WorkerManager {
     public static HashSet<String> getLogs(int failedWorkerId, String type){
         Sender sender = new Sender();
         String fileName = failedWorkerId + "_" + type +"_log.txt";
-        int fileNameHash = HashFunction.hash(fileName);
-        Member member = MembershipList.getMemberById(fileNameHash);
-        String IpAddress = member.getIpAddress();
-        String port = member.getPort();
-        int fileReceiverPort = (int) FDProperties.getFDProperties().get("machinePort");
+        System.out.println( "fileName" + fileName);
         try {
+            Iterator<Map.Entry<Integer, Member>> iterator = MembershipList.memberslist.entrySet().iterator();
             String response = "Unsuccessful";
-            while(response.equals("Unsuccessful")) {
+            while(iterator.hasNext()) {
+                System.out.println( "sending request fileName" + fileName);
+                Map.Entry<Integer, Member> entry = iterator.next();
+                Member member = entry.getValue();
+                if(member.getId() == MembershipList.selfId){
+                    entry = iterator.next();
+                    member = entry.getValue();
+                }
+                String IpAddress = member.getIpAddress();
+                String port = member.getPort();
+                System.out.println("sending request to : " + member.getName() + ":" + member.getId() + ":" + IpAddress + ":" + port);
+                int fileReceiverPort = (int) FDProperties.getFDProperties().get("machinePort");
                 Map<String, Object> messageContent = new HashMap<>();
                 messageContent.put("messageName", "get_log");
                 messageContent.put("senderName", FDProperties.getFDProperties().get("machineName"));
@@ -109,16 +129,19 @@ public class WorkerManager {
                         senderPort,
                         messageContent);
                 response = sender.sendMessage(IpAddress, Integer.parseInt(port), msg);
+                System.out.println("Response : " + response);
                 if(response.equals("Successful")) {
+                    System.out.println("Log found successfully");
                     break;
                 }else {
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 }
             }
         }catch (Exception e){
             e.printStackTrace();
         }
         //Read the logs
+        System.out.println("Reading logs");
         try (Scanner scanner = new Scanner(new File("local\\" + fileName))) {
             String line;
             HashSet<String> processedTuples = new HashSet<>();
@@ -127,15 +150,17 @@ public class WorkerManager {
                 if(line.contains("received")) {
                     String[] temp = line.split(":");
                     String tempID = temp[1].replace(" ", "");
+                    System.out.println(line);
                     processedTuples.add(tempID);
                 }
             }
+            System.out.println("Total processed Tuples Found :" + processedTuples.size());
             return processedTuples;
         }catch (Exception e){
             e.printStackTrace();
         }
         if(type.equals("op2")){
-            getState(failedWorkerId,type);
+//            getState(failedWorkerId,type);
         }
         return null;
     }

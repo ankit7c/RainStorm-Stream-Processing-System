@@ -371,7 +371,6 @@ public class Sender {
             }
             i=0;
             for (Member value : op2) {
-                System.out.println("value.getId() : " + value.getId());
                 messageContent.put("op2_" + i, value.getId());
                 i++;
             }
@@ -379,7 +378,16 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
-            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            String response = "";
+            int retry = 5;
+            while (retry >= 0){
+                response = sendMessage(IpAddress, port, msg);
+                if(!response.equals("Unsuccessful")){
+                    break;
+                }
+                retry--;
+            }
+            String[] resp = response.split(",");
             status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
             catch (Exception e){
@@ -405,7 +413,6 @@ public class Sender {
             }
             i=0;
             for (Member value : op2) {
-                System.out.println("value.getId() : " + value.getId());
                 messageContent.put("op2_" + i, value.getId());
                 i++;
             }
@@ -413,7 +420,17 @@ public class Sender {
                     String.valueOf(FDProperties.getFDProperties().get("machineIp")),
                     String.valueOf(FDProperties.getFDProperties().get("machinePort")),
                     messageContent);
-            String[] resp = sendMessage(IpAddress, port, msg).split(",");
+            String response = "";
+            int retry = 5;
+            while (retry >= 0){
+                response = sendMessage(IpAddress, port, msg);
+                if(!response.equals("Unsuccessful")){
+                    break;
+                }
+                retry--;
+            }
+            String[] resp = response.split(",");
+            System.out.println("OP1 started :");
             status.put(new Leader.WorkerTasks("op1", member, Integer.parseInt(resp[0]), Integer.parseInt(resp[1])), resp[0]);
         }
         catch (Exception e){
