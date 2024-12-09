@@ -42,7 +42,7 @@ public class FileSender implements Runnable {
 //        System.out.println("Connecting to server at " + IpAddress + ":" + port);
         try (SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(IpAddress, port));
              FileChannel fileChannel = FileChannel.open(Paths.get(localFileName), StandardOpenOption.READ)) {
-//            System.out.println("Sending file");
+            System.out.println("Sending file");
 
             JSONObject metadataJson = new JSONObject();
             metadataJson.put("FILENAME", hyDFSFileName);
@@ -70,6 +70,7 @@ public class FileSender implements Runnable {
             buffer.clear();
             socketChannel.socket().getOutputStream().flush();
             result = "File sent successfully!";
+            System.out.println(result);
             FileTransferManager.logEvent("File sent: " + localFileName);
             fileChannel.close();
 

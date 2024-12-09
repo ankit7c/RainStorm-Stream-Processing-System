@@ -437,7 +437,7 @@ public class Worker extends Thread {
     public void sendLog(String filetype){
         String FileName = "local\\" + selfId + "_" + type +"_log.txt";
         String HyDFSFileName = selfId + "_" + type +"_log.txt";
-        System.out.println("Sending data : " + HyDFSFileName);
+        System.out.println("Sending log : " + HyDFSFileName);
         try {
             if(filetype.equals("APPEND")) {
                 int fileNameHash = HashFunction.hash(HyDFSFileName);
@@ -464,6 +464,7 @@ public class Worker extends Thread {
                         "");
                 fileSender.run();
             }
+            System.out.println("log sent successfully");
         } catch (RuntimeException e) {
             System.out.println("File Append was unsuccessful");
         }
