@@ -78,12 +78,12 @@ public class Worker extends Thread {
             System.out.println(port);
             if(!port.isBlank()) {
                 String[] s = port.split(":");
-                System.out.println("My Id : " + MembershipList.selfId);
-                System.out.println("Membership List");
-                MembershipList.memberslist.forEach((k, v) -> System.out.println(k + "," + v.getName()));
-                System.out.println("Members List");
-                MembershipList.members.forEach((k, v) -> System.out.println(k + "," + v.getName()));
-                System.out.println("I am saving details for : " + port);
+//                System.out.println("My Id : " + MembershipList.selfId);
+//                System.out.println("Membership List");
+//                MembershipList.memberslist.forEach((k, v) -> System.out.println(k + "," + v.getName()));
+//                System.out.println("Members List");
+//                MembershipList.members.forEach((k, v) -> System.out.println(k + "," + v.getName()));
+//                System.out.println("I am saving details for : " + port);
                 if (s[0].equals("source")) {
                     sources.put(Integer.valueOf(s[2]), MembershipList.memberslist.get(Integer.valueOf(s[1])));
                 } else if (s[0].equals("op1")) {

@@ -10,6 +10,8 @@ import org.example.entities.Message;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -35,6 +37,7 @@ public class Leader {
             this.end = end;
         }
     }
+    static LocalDateTime startTime;
     static List<Member> sources = new ArrayList<>();
     static List<Member> op1 = new ArrayList<>();
     static List<Member> op2 = new ArrayList<>();
@@ -56,6 +59,7 @@ public class Leader {
     //Function to determine which nodes are active and assign tasks to each of them
     public static void initializeNodes(String filename,
                                 String destFilename, int num_tasks, String[] ops, String pattern1, String pattern2) {
+        startTime = LocalDateTime.now();
         ConcurrentSkipListMap<Integer, Member> memberslist = MembershipList.memberslist;
         //Remove itself
         memberslist.remove(MembershipList.selfId);
@@ -126,6 +130,11 @@ public class Leader {
         totalEOFs.put(workerId,1);
         if(totalEOFs.size() == op2.size()){
             try {
+                LocalDateTime endTime = LocalDateTime.now();
+                System.out.println("End Time: " + endTime);
+                Duration duration = Duration.between(startTime, endTime);
+                long seconds = duration.toSeconds();
+                System.out.println("Time taken: " + seconds + " seconds");
                 //All processes have been ended, say worker managers to kill the nodes
                 Thread.sleep(5000);
                 workerIds.forEach((k, v) -> {

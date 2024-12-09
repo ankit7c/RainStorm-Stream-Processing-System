@@ -54,6 +54,13 @@ for /L %%i in (1,1,%max_index%) do (
 
     echo Connecting to !VM_HOST!...
 
+    REM Determine if this is the first VM (introducer)
+    if %%i==1 (
+        set IS_INTRODUCER=true
+    ) else (
+        set IS_INTRODUCER=false
+    )
+
     REM Connect to the VM and run the commands
     (
         echo y
@@ -73,6 +80,7 @@ for /L %%i in (1,1,%max_index%) do (
         "echo 'port.number=!PORT_NUMBER1!' >> application.properties && " ^
         "echo 'machineName=!MACHINE_NAME!' >> application.properties && " ^
         "echo 'machinePort=!PORT_NUMBER2!' >> application.properties && " ^
+        "echo 'isIntroducer=!IS_INTRODUCER!' >> application.properties && " ^
         "cd target/ && " ^
         "mv mp1-1.jar ../"
 
