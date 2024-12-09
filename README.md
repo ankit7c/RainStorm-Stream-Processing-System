@@ -1,7 +1,7 @@
-# CS 425 MP3 (Hybrid Distributed File System)
+# CS 425 MP4 (Rain Storm)
 
 ## Description 
-Implementation of Hybrid Distributed File System for CS425 MP3.
+Implementation of Rain-Storm for CS425 MP4.
 
 ## Installation Instructions
 
@@ -27,25 +27,35 @@ nano application.properties
 
 4) Edit the properties file to and set isIntroducer=true.
 
+5) Update the properties file with details for your executable. Use below fields and set totExecutables correctly.
+```
+totExecutables=Total no of executables
+exeDir=Directory where Java classes are stored
+class1=Class Name
+methodName1=Method Name
+stateful1= is operation stateful or stateless
+saveMethodName1=Method name to save object/state
+loadMethodName1=Method name to load object/state
+savePath1=save file path
+saveFileName1=file name of object
+```
 
-5) Add the files you want to use in the "Hybrid-Distributed-File-System/input/" folder.
+
+6) Add the files you want to process in the "Rain-Storm/input/" folder.
 
 
-5) On each machine go to repository folder and Run the code  using:
+7) On each machine go to repository folder and Run the code  using:
 
 ```
 java -jar mp1-1.jar
 ```
 
-6) Enter the command "join" to join the node.
+8) Enter the command "join" to join the ring/network.
 
 
-7) Once Nodes joins the network, you can start running the create , get and various other commands.
-
-
-8) sample command for creating a file on Hybrid Distributed File System
+9) Once Nodes joins the network, sample command for processing a file on Rain Storm
 ```
-create input/test_file_1MB.txt test_file_1MB.txt
+rainstorm OP1_class_name OP2_class_name File_name hydfs_dest_filename num_tasks Pattern1_for_OP1 Pattern1_for_OP2
 ```
    
 
